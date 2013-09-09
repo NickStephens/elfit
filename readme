@@ -1,1 +1,18 @@
-A collection of ELF injectors written for educational purposes.
+A collection of ELF injectors/infectors written for educational purposes.
+
+Within the scope of this toolset 'infecting' is the process of the inserting code into an ELF executabile which redirects control to malicious instructions.
+
+'Injection' is the process of inserting and smuggling a malicious payload into an ELF executable without breaking the executable's integrity.
+
+Infection Techniques:
+o  .ctors
+o  .dtors
+o  entrypoint
+o  got poisoning
+o  .plt redirection
+o  arbitry function hooking
+
+Injection Techniques:
+o post-text padding
+o pre-text (reverse) padding
+o data segment 
