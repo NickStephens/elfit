@@ -214,23 +214,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
+    rename(TMP, argv[1]);
     close(ofd);
     
 }
-
-/* questions about ELF:
- * how does this work?
- *   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
- *   LOAD           0x000000 0x08048000 0x08048000 0x005d0 0x005d0 R E 0x1000
- *   LOAD           0x0005d0 0x080495d0 0x080495d0 0x0011c 0x00120 RW  0x1000
- *   DYNAMIC        0x0005dc 0x080495dc 0x080495dc 0x000e8 0x000e8 RW  0x4
- *
- * particularly how can the DYNAMIC segment exist only 12 bytes in the file after
- * the data segment while the data segment's FileSiz is 284 bytes? Can segment's
- * exist within each other?
- *
- * any tool recommendations for inspecting the structure of the elf without abiding
- * by the elf headers? I'm using hexdump right now to make sure I padded up to 
- * PAGE_SIZE correctly.
- */
-
