@@ -16,8 +16,12 @@ typedef struct {
 } Elfit_t;
 
 /* Redirectors */
-int entry_redirect(char *, unsigned long);
+int entry_redirect(Elfit_t *, unsigned long);
 
 /* Injectors */
-int posttest_inject(char *, struct stat *, char *, uint8_t);
+uint32_t posttest_inject(Elfit_t *, char *, uint32_t);
 
+/* Utilities */
+int load_host(char *, Elfit_t *);
+
+void unload_host(Elfit_t *);
