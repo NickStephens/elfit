@@ -30,7 +30,13 @@ int load_host(char *name, Elfit_t *host)
 
     if ((host->file = malloc(statsz)) == NULL)
     {
-        perror("host file alloc");
+        perror("host file malloc");
+        return -1;
+    }
+
+    if (read(hfd, host->mem, hst.st_size) != hst.st_size)
+    {
+        perror("host read");
         return -1;
     }
 
