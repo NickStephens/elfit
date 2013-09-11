@@ -51,3 +51,16 @@ void unload_host(Elfit_t *host)
     free(host->mem);
     free(host->file);
 }
+
+int reload_host(char *name, Elfit_t *host)
+{
+    unload_host(host);
+
+    if (load_host(name, host) == -1)
+    {
+        perror("reload load_host");
+        return -1;
+    }
+
+    return 1;
+}
