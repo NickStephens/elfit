@@ -9,6 +9,12 @@
 #define PAGE_SIZE 4096
 #define TMP "tmp.bin"
 
+typedef struct {
+    char *name;
+    unsigned char *mem;
+    struct stat *file; 
+} Elfit_t;
+
 /* Redirectors */
 int entry_redirect(char *, unsigned long);
 
