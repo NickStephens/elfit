@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <elf.h>
-
-#define PAGE_SIZE 4096
-#define TMP "tmp.bin"
+#include "elfit.h"
 
 int hfd, pfd;
 int patch_position;
