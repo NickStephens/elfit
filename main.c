@@ -3,9 +3,6 @@
 /* currently just a wrapper for posttext inject */
 int main(int argc, char *argv[])
 {
-    char *parasite;
-    struct stat hst;
-    int hfd;
     unsigned long entry;
     uint32_t patch_position;
     Elfit_t host;
@@ -22,19 +19,9 @@ int main(int argc, char *argv[])
 
     load_host(argv[1], &host);
 
-    if ((parasite = malloc(strlen(argv[2]))) == NULL)
-    {
-        perror("malloc parasite str");
-        exit(-1);
-    }
-
-    strncpy(parasite, argv[2], strlen(argv[2]));
-
     /* PATCH TO (ENTRY [NULL], X) */
-    entry = textpadding_inject(&host, parasite, patch_position);
+    entry = textpadding_inject(&host, argv[2], patch_position);
     reload_host(argv[1], &host);
 
     entry_redirect(&host, entry);
-
-    free(parasite);
 }
