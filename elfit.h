@@ -25,3 +25,5 @@ uint32_t posttest_inject(Elfit_t *, char *, uint32_t);
 int load_host(char *, Elfit_t *);
 
 void unload_host(Elfit_t *);
+
+int get_section_by_name(char *, Elfit_t *);
