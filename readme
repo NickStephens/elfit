@@ -7,12 +7,14 @@ Within the scope of this toolset 'redirecting' is the process of inserting code 
 Redirection Techniques:
 o  .ctors
 o  .dtors
-o  entrypoint
+x  entrypoint
 o  got poisoning
 o  .plt redirection
 o  arbitry function hooking
 
 Injection Techniques:
-o post-text padding
+x post-text padding
 o pre-text (reverse) padding
 o data segment 
+o shared object injection
+o et_rel injection
