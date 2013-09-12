@@ -7,7 +7,7 @@
  * @param parasite filename containing the parasite
  * @param patch_position position in the parasite code to insert the host's code address
  */
-uint32_t posttext_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
+uint32_t textpadding_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
 {
     unsigned long entry_point, text_offset, text_begin;
     unsigned int entry_offset;
