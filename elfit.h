@@ -16,14 +16,14 @@ typedef struct {
 } Elfit_t;
 
 /* Redirectors */
-int entry_redirect_32(Elfit_t *, unsigned long);
-int entry_redirect_64(Elfit_t *, unsigned long);
+int entry_redirect_32(Elfit_t *, uint32_t);
+int entry_redirect_64(Elfit_t *, uint64_t);
 
-Elf32_Addr got_redirect_32(Elfit_t *, char *, unsigned long);
+Elf32_Addr got_redirect_32(Elfit_t *, char *, uint32_t);
 
 /* Injectors */
-uint32_t textpadding_inject_32(Elfit_t *, char *, uint32_t, unsigned long);
-uint64_t textpadding_inject_64(Elfit_t *, char *, uint64_t, unsigned long);
+uint32_t textpadding_inject_32(Elfit_t *, char *, uint32_t, uint32_t);
+uint64_t textpadding_inject_64(Elfit_t *, char *, uint64_t, uint64_t);
 
 /* Utilities */
 int load_host(char *, Elfit_t *);
@@ -31,3 +31,4 @@ int load_host(char *, Elfit_t *);
 void unload_host(Elfit_t *);
 
 int get_section_by_name_32(char *, Elfit_t *);
+int get_section_by_name_64(char *, Elfit_t *);

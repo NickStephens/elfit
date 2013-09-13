@@ -9,7 +9,7 @@
  * @param patch_addr the address to patch the parasite with, when 0 this defaultsto the original entry_point
  */
 uint32_t textpadding_inject_32(Elfit_t *host, char *parasite, uint32_t patch_position
-, unsigned long patch_addr)
+, uint32_t patch_addr)
 {
     unsigned long entry_point, text_offset, text_begin, tmp_addr;
     unsigned int entry_offset;
@@ -109,7 +109,7 @@ uint32_t textpadding_inject_32(Elfit_t *host, char *parasite, uint32_t patch_pos
     else
         tmp_addr = patch_addr;
 
-    *(unsigned long *)&buf[patch_position] = tmp_addr;
+    *(uint32_t *)&buf[patch_position] = tmp_addr;
     printf("Patching parasite to jmp to %x\n", tmp_addr);
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
@@ -153,7 +153,7 @@ uint32_t textpadding_inject_32(Elfit_t *host, char *parasite, uint32_t patch_pos
 }
 
 uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_position, 
-    unsigned long patch_addr)
+    uint64_t patch_addr)
 {
     unsigned long entry_point, text_offset, text_begin, tmp_addr;
     unsigned int entry_offset;
@@ -253,7 +253,7 @@ uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_pos
     else
         tmp_addr = patch_addr;
 
-    *(unsigned long *)&buf[patch_position] = tmp_addr;
+    *(uint64_t *)&buf[patch_position] = tmp_addr;
     printf("Patching parasite to jmp to %x\n", tmp_addr);
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
