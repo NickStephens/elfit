@@ -19,7 +19,7 @@ typedef struct {
 int entry_redirect(Elfit_t *, unsigned long);
 
 /* Injectors */
-uint32_t posttest_inject(Elfit_t *, char *, uint32_t);
+uint32_t textpadding_inject(Elfit_t *, char *, uint32_t, unsigned long);
 
 /* Utilities */
 int load_host(char *, Elfit_t *);
