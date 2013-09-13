@@ -6,6 +6,7 @@ int main(int argc, char *argv[])
     unsigned long entry;
     uint32_t patch_position;
     Elfit_t host;
+    Elf32_Addr got;
 
     patch_position = atoi(argv[3]);
 
@@ -23,5 +24,9 @@ int main(int argc, char *argv[])
     entry = textpadding_inject(&host, argv[2], patch_position);
     reload_host(argv[1], &host);
 
-    entry_redirect(&host, entry);
+    if ((got = got_redirect(&host, "puts", entry)) == -1)
+    {
+        printf("Couldn't find symbol\n");
+        exit(-1);
+    }
 }
