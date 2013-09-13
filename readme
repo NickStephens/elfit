@@ -8,7 +8,7 @@ Redirection Techniques:
 o  .ctors
 o  .dtors
 x  entrypoint
-o  got poisoning
+x  got poisoning
 o  .plt redirection
 o  arbitry function hooking
 
