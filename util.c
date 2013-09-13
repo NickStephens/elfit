@@ -65,6 +65,9 @@ int reload_host(char *name, Elfit_t *host)
     return 1;
 }
 
+/* Retrieve a section's index 
+ * given the name of section and
+ * a Elfit_t */
 int get_section_by_name(char *name, Elfit_t *host)
 {
     Elf32_Ehdr *ehdr;
