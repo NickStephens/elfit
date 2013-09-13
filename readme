@@ -11,6 +11,7 @@ x  entrypoint
 x  got poisoning
 o  .plt redirection
 o  arbitry function hooking
+o  __libc_start_main argument hijacking (as far as I know, I am the first person to devise this method)
 
 Injection Techniques:
 x post-text padding
