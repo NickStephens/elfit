@@ -5,7 +5,7 @@ int entry_redirect_32(Elfit_t *host, uint32_t malpoint)
     int ofd, c;
     Elf32_Ehdr *ehdr;
     
-    printf("Patching host's entrypoint to 0x%x\n", malpoint);
+    printf("[+ ENTRY_POINT REDIR] Patching host's entrypoint to 0x%x\n", malpoint);
 
     ehdr = (Elf32_Ehdr *) host->mem;
 
@@ -33,7 +33,7 @@ int entry_redirect_64(Elfit_t *host, uint64_t malpoint)
     int ofd, c;
     Elf64_Ehdr *ehdr;
     
-    printf("Patching host's entrypoint to 0x%x\n", malpoint);
+    printf("[+ ENTRY_POINT REDIR] Patching host's entrypoint to 0x%x\n", malpoint);
 
     ehdr = (Elf64_Ehdr *) host->mem;
 
@@ -121,7 +121,7 @@ Elf32_Addr got_redirect_32(Elfit_t *host, char *target, uint32_t malpoint)
 
     relocptr = data_offset + ((Elf32_Off) (gotptr - data_vaddr));
 
-    printf("Patching 0x%x (offset 0x%x) with 0x%x\n",
+    printf("[+ .GOT REDIR]Patching 0x%x (offset 0x%x) with 0x%x\n",
         gotptr, relocptr,  malpoint);
     *(unsigned long*)&host->mem[relocptr] = malpoint;
 
@@ -209,7 +209,7 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
 
     relocptr = data_offset + ((Elf64_Off) (gotptr - data_vaddr));
 
-    printf("Patching 0x%x (offset 0x%x) with 0x%x\n",
+    printf("[+ .GOT REDIR]Patching 0x%x (offset 0x%x) with 0x%x\n",
         gotptr, relocptr,  malpoint);
     *(unsigned long*)&host->mem[relocptr] = malpoint;
 
