@@ -37,6 +37,8 @@ typedef struct {
     unsigned int dtors; 
     /* arbitrary function hook */
     unsigned int arbfunc; 
+
+
     /* text padding method */
     unsigned int textpadding; 
     /* reverse padding method */
@@ -45,6 +47,9 @@ typedef struct {
     unsigned int soinject; 
     /* et_rel method */
     unsigned int etrelinject; 
+
+    /* cross architecture infection */
+    unsigned int cross_infect;
 } opts_t;
 
 

@@ -17,7 +17,8 @@ static void print_help(char opt, char *prog)
     "-c             use ctor redirection\n"
     "-d             use dtor redirection\n"
     "-v <addr>      patch parasite with addr for jmp point\n"
-    "-q <position>  byte index into parasite with which to patch with return addr\n",
+    "-q <position>  byte index into parasite with which to patch with return addr\n"
+    "-x             cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
     prog);
 }
 
@@ -35,7 +36,7 @@ opts_t * usage(int argc, char *argv[])
     }
 
     memset(opts, 0, sizeof(opts_t));
-    while((c = getopt(argc, argv, "p:r:s:a:eg:cdv:q:h")) != -1)
+    while((c = getopt(argc, argv, "p:r:s:a:eg:cdv:q:xh")) != -1)
     {
         switch(c)
         {
@@ -54,6 +55,7 @@ opts_t * usage(int argc, char *argv[])
             case 'd': opts->dtors++; break;
             case 'v': opts->patch_addr = strtoul(optarg, NULL, 16); break;
             case 'q': opts->patch_pos = atoi(optarg); break;
+            case 'x': opts->cross_infect++; break;
             case 'h': print_help(0x00, argv[0]); break;
             default: print_help((char) c, argv[0]); break;
         }
