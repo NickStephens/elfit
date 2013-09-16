@@ -110,7 +110,7 @@ uint32_t textpadding_inject_32(Elfit_t *host, char *parasite, uint32_t patch_pos
         tmp_addr = patch_addr;
 
     *(uint32_t *)&buf[patch_position] = tmp_addr;
-    printf("[+ TEXT_PAD INJECT] Patching parasite to jmp to 0x%x\n", tmp_addr);
+    printf("[+ TEXT_PAD INJECT]\tPatching parasite to jmp to 0x%x\n", tmp_addr);
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
         < 0) 
@@ -254,7 +254,7 @@ uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_pos
         tmp_addr = patch_addr;
 
     *(uint64_t *)&buf[patch_position] = tmp_addr;
-    printf("[+ TEXT_PAD INJECT] Patching parasite to jmp to 0x%x\n", tmp_addr);
+    printf("[+ TEXT_PAD INJECT]\tPatching parasite to jmp to 0x%x\n", tmp_addr);
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
         < 0) 
