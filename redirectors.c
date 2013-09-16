@@ -161,7 +161,7 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
     phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff); 
     shdr = (Elf64_Shdr *) (host->mem + ehdr->e_shoff);
 
-    if ((relindex = get_section_by_name_64(".rel.plt", host)) == -1)
+    if ((relindex = get_section_by_name_64(".rela.plt", host)) == -1)
     {
         printf("could not find relocation table\n");
         return -1;
