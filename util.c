@@ -118,6 +118,10 @@ int str_to_mode(char *str)
     {
         return HIJACK_FINI;
     }
+    else if (!strcmp(str, "main"))
+    {
+        return HIJACK_MAIN;
+    }
     else
     {
         printf("[-] unrecognized hijack mode chosen\n");

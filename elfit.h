@@ -14,6 +14,7 @@
 
 #define HIJACK_INIT 1
 #define HIJACK_FINI 2
+#define HIJACK_MAIN 3
 
 typedef struct {
     char *name;

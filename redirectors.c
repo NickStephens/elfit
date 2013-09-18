@@ -268,6 +268,8 @@ int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)
         pushestil = 4;
     else if (mode == HIJACK_FINI)
         pushestil = 3;
+    else if (mode == HIJACK_MAIN)
+        pushestil = 7;
     for(i = 0; i < MAX_SEARCH_LEN; i++)
     {
         /* pushing a register */
