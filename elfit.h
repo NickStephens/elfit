@@ -9,6 +9,7 @@
 
 #define PAGE_SIZE 4096
 #define MAX_FILENAME 100
+#define MAX_SEARCH_LEN 0x100
 #define TMP "tmp.bin"
 
 typedef struct {
@@ -37,6 +38,8 @@ typedef struct {
     unsigned int dtors; 
     /* arbitrary function hook */
     unsigned int arbfunc; 
+    /* __libc_start_main arg hijacking*/
+    unsigned int startmain;
 
 
     /* text padding method */

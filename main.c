@@ -82,6 +82,10 @@ int elfit32(opts_t *opts)
         printf("chosen redirection method not yet implemented\n");
         return -1;
     }
+    else if (opts->startmain)
+    {
+        libc_start_main_hijack_32(&host, malpoint);
+    }
 
     unload_host(&host);
     return 1;
