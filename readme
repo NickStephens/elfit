@@ -9,9 +9,8 @@ o  .ctors
 o  .dtors
 x  entrypoint
 x  got poisoning
-o  .plt redirection
 o  arbitry function hooking
-o  __libc_start_main argument hijacking (as far as I know, I am the first person to devise this method)
+x  __libc_start_main argument hijacking [BRAND NEW]
 
 Injection Techniques:
 x post-text padding
@@ -19,3 +18,10 @@ o pre-text (reverse) padding
 o data segment 
 o shared object injection
 o et_rel injection
+
+New Technique:
+
+This infection toolkit offers a new redirection technique that is not implemented in other elf infection tools that this author has seen. This new technique is __libc_start_main argument hijacking. It's very simple and stealthy, particularly because I haven't seen any Linux AV software which would detect this kind of redirection attack. It works by overwriting a pointer that's passed to the __libc_start_main function(currently it only hijacks the pointer to the libc_csu_init function), the parasite
+code is now responsible for restoring any clobbered registers (this is critical!) and jumping to libc_csu_init.
+
+As far as .ctors, .dtors, and entry point redirection goes, this author can testify to seeing implementation of Linux AV which easily detect those kinds of redirections. Although it does not seem it would be extraordinarily difficult to detect and disinfect this new method, its worth lies in its novelty.
