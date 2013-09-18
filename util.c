@@ -107,3 +107,21 @@ int get_section_by_name_64(char *name, Elfit_t *host)
 
     return -1;
 }
+
+int str_to_mode(char *str)
+{
+    if (!strcmp(str, "init"))
+    {
+        return HIJACK_INIT;
+    }
+    else if (!strcmp(str, "fini"))
+    {
+        return HIJACK_FINI;
+    }
+    else
+    {
+        printf("[-] unrecognized hijack mode chosen\n");
+        exit(-1);
+    }
+}
+

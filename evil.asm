@@ -2,12 +2,14 @@ BITS 32
 
 jmp short b
 a:
-    xor eax, eax
     pop ecx 
+    pusha
+    xor eax, eax
     mov ebx, 1
     mov edx, 4
     mov eax, 4
     int 0x80
+    popa
 
     mov eax, 0
     jmp eax

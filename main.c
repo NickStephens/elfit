@@ -84,7 +84,7 @@ int elfit32(opts_t *opts)
     }
     else if (opts->startmain)
     {
-        libc_start_main_hijack_32(&host, malpoint);
+        return libc_start_main_hijack_32(&host, malpoint, opts->startmain_mode);
     }
 
     unload_host(&host);

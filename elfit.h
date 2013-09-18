@@ -12,6 +12,9 @@
 #define MAX_SEARCH_LEN 0x100
 #define TMP "tmp.bin"
 
+#define HIJACK_INIT 1
+#define HIJACK_FINI 2
+
 typedef struct {
     char *name;
     unsigned char *mem;
@@ -40,6 +43,7 @@ typedef struct {
     unsigned int arbfunc; 
     /* __libc_start_main arg hijacking*/
     unsigned int startmain;
+    unsigned int startmain_mode;
 
 
     /* text padding method */
