@@ -8,18 +8,18 @@ static void print_help(char opt, char *prog)
     printf(
     "usage: %s [options] <host>\n"
     "options:\n"
-    "-p <parasite>  inject parasite by padding text\n"
-    "-r <parasite>  inject parasite by reverse padding\n"
-    "-s <sharedobj> inject shared object\n"
-    "-a <reloc>     inject relocatable\n"
-    "-g <symbol>    hijack symbol's got entry\n"
-    "-e             use entry point redirection\n"
-    "-c             use ctor redirection\n"
-    "-d             use dtor redirection\n"
-    "-m init|fini   hijack chosen __libc_start_main arg\n"
-    "-v <addr>      patch parasite with addr for jmp point\n"
-    "-q <position>  byte index into parasite with which to patch with return addr\n"
-    "-x             cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
+    "-p <parasite>      inject parasite by padding text\n"
+    "-r <parasite>      inject parasite by reverse padding\n"
+    "-s <sharedobj>     inject shared object\n"
+    "-a <reloc>         inject relocatable\n"
+    "-g <symbol>        hijack symbol's got entry\n"
+    "-e                 use entry point redirection\n"
+    "-c                 use ctor redirection\n"
+    "-d                 use dtor redirection\n"
+    "-m init|fini|main  hijack chosen __libc_start_main arg\n"
+    "-v <addr>          patch parasite with addr for jmp point\n"
+    "-q <position>      byte index into parasite with which to patch with return addr\n"
+    "-x                 cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
     prog);
     exit(-1);
 }
