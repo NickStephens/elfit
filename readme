@@ -1,6 +1,6 @@
 A collection of ELF injectors and redirectors written for educational purposes.
 
-Within the scope of this toolset 'redirecting' is the process of inserting code into an ELF executabile which passes control to malicious instructions.
+Within the scope of this toolset 'redirecting' is the process of inserting code into an ELF executable which passes control to malicious instructions.
 
 'Injection' is the process of inserting and smuggling a malicious payload into an ELF executable without breaking the executable's integrity.
 
