@@ -9,6 +9,10 @@ a:
     mov rax, 4
     int 0x80
 
+    xor rcx, rcx
+    xor rbx, rbx
+    xor rdx, rdx
+
     mov rax, 0
     jmp rax
 
