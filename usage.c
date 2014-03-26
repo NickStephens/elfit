@@ -8,17 +8,25 @@ static void print_help(char opt, char *prog)
     printf(
     "usage: %s [options] <host>\n"
     "options:\n"
-    "-p <parasite>      inject parasite by padding text\n"
-    "-r <parasite>      inject parasite by reverse padding\n"
-    "-s <sharedobj>     inject shared object\n"
-    "-a <reloc>         inject relocatable\n"
-    "-g <symbol>        hijack symbol's got entry\n"
-    "-e                 use entry point redirection\n"
-    "-c                 use ctor redirection\n"
-    "-d                 use dtor redirection\n"
-    "-m init|fini|main  hijack chosen __libc_start_main arg\n"
-    "-v <addr>          patch parasite with addr for jmp point\n"
-    "-q <position>      byte index into parasite with which to patch with return addr\n"
+    "-p <parasite>      specify parasite\n"
+    "\n"
+    "INJECTION TECHNIQUES:\n"
+    "\t-t                 text padding infection\n"
+    "\t-r                 reverse text padding infection\n"
+    "\t-w                 data padding infection\n"
+    "\t-s <sharedobj>     inject shared object\n"
+    "\t-a                  relocatable injection\n"
+    "\n"
+    "REDIRECTION TECHNIQUES:\n"
+    "\t-g <symbol>        hijack symbol's got entry\n"
+    "\t-e                 use entry point redirection\n"
+    "\t-c                 use ctor redirection\n"
+    "\t-d                 use dtor redirection\n"
+    "\t-m init|fini|main  hijack chosen __libc_start_main arg\n"
+    "\n"
+    "PARASITE MODIFICATION:\n"
+    "\t-v <addr>          patch parasite with addr for jmp point\n"
+    "\t-q <position>      byte index into parasite with which to patch with return addr\n"
     "-x                 cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
     prog);
     exit(-1);
@@ -38,17 +46,18 @@ opts_t * usage(int argc, char *argv[])
     }
 
     memset(opts, 0, sizeof(opts_t));
-    while((c = getopt(argc, argv, "p:r:s:a:eg:cdm:v:q:xh")) != -1)
+    while((c = getopt(argc, argv, "p:trsaeg:cdm:v:q:xh")) != -1)
     {
         switch(c)
         {
-            case 'p': strncpy(opts->parasite, optarg, MAX_FILENAME-1); 
+            case 'p': strncpy(opts->parasite, optarg, MAX_FILENAME-1);
+            case 't': 
                 opts->textpadding++; break;
-            case 'r': strncpy(opts->parasite, optarg, MAX_FILENAME-1);  
+            case 'r': 
                 opts->reversepadding++; break;
-            case 's': strncpy(opts->parasite, optarg, MAX_FILENAME-1);
+            case 's': 
                 opts->soinject++; break;
-            case 'a': strncpy(opts->parasite, optarg, MAX_FILENAME-1);
+            case 'a': 
                 opts->etrelinject++; break;
             case 'e': opts->entrypoint++; break;
             case 'g': (opts->pltsymbol, optarg, MAX_FILENAME-1);
