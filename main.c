@@ -210,6 +210,10 @@ int elfit64(opts_t *opts)
         printf("chosen redirection method not yet implemented\n");
         return -1;
     }
+    else if (opts->startmain)
+    {
+        return libc_start_main_hijack_64(&host, malpoint, opts->startmain_mode);
+    }
 
     unload_host(&host);
     return 1;
