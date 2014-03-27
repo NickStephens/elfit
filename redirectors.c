@@ -32,8 +32,6 @@ int entry_redirect_64(Elfit_t *host, uint64_t malpoint)
 {
     int ofd, c;
     Elf64_Ehdr *ehdr;
-    
-    printf("[+ ENTRY_POINT REDIR]\tPatching host's entrypoint to 0x%x\n", malpoint);
 
     ehdr = (Elf64_Ehdr *) host->mem;
 

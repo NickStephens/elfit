@@ -27,6 +27,8 @@ typedef struct {
     char host[MAX_FILENAME];
     /* name of parasite file */
     char parasite[MAX_FILENAME];
+    /* XOR key for polymorphism */
+    char polymorphic_key;
     /* address to patch parasite code with */
     unsigned long patch_addr;
     /* patch position */
@@ -69,7 +71,7 @@ Elf32_Addr got_redirect_32(Elfit_t *, char *, uint32_t);
 
 /* Injectors */
 uint32_t textpadding_inject_32(Elfit_t *, char *, uint32_t, uint32_t);
-uint64_t textpadding_inject_64(Elfit_t *, char *, uint64_t, uint64_t);
+uint64_t textpadding_inject_64(Elfit_t *, Elfit_t *, uint64_t, uint64_t);
 
 /* Utilities */
 int load_host(char *, Elfit_t *);

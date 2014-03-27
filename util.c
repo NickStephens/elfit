@@ -108,6 +108,42 @@ int get_section_by_name_64(char *name, Elfit_t *host)
     return -1;
 }
 
+int make_text_writeable64(Elfit_t *host)
+{
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+    size_t wrote;
+    int ofd;
+    int i;
+
+    ehdr = (Elf64_Ehdr *) host->mem;
+    phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff);
+
+    for(i = 0; i < ehdr->e_phnum; phdr++, i++)
+    {
+        if (phdr->p_type == PT_LOAD)
+            if (phdr->p_flags == (PF_R | PF_X))
+                phdr->p_flags |= PF_W;
+    }
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode)) < 0)
+    {
+        perror("tmp binary");
+        exit(-1);
+    }
+
+    if ((wrote = write(ofd, host->mem, host->file->st_size)) < host->file->st_size)
+    {
+        perror("modifying headers");
+        exit(-1);
+    }
+    
+    rename(TMP, host->name);
+    close(ofd);
+
+    return 0;
+}
+
 int str_to_mode(char *str)
 {
     if (!strcmp(str, "init"))

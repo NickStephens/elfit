@@ -8,7 +8,7 @@ static void print_help(char opt, char *prog)
     printf(
     "usage: %s [options] <host>\n"
     "options:\n"
-    "-p <parasite>      specify parasite\n"
+    "-p <parasite>      specify parasite file\n"
     "\n"
     "INJECTION TECHNIQUES:\n"
     "\t-t                 text padding infection\n"
@@ -27,6 +27,7 @@ static void print_help(char opt, char *prog)
     "PARASITE MODIFICATION:\n"
     "\t-v <addr>          patch parasite with addr for jmp point\n"
     "\t-q <position>      byte index into parasite with which to patch with return addr\n"
+    "\t-z <key>           mutates the parasite with key, may mark injection segment writable\n"
     "-x                 cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
     prog);
     exit(-1);
@@ -46,11 +47,12 @@ opts_t * usage(int argc, char *argv[])
     }
 
     memset(opts, 0, sizeof(opts_t));
-    while((c = getopt(argc, argv, "p:trsaeg:cdm:v:q:xh")) != -1)
+    while((c = getopt(argc, argv, "z:p:trsaeg:cdm:v:q:xh")) != -1)
     {
         switch(c)
         {
-            case 'p': strncpy(opts->parasite, optarg, MAX_FILENAME-1);
+            case 'z': opts->polymorphic_key = optarg[0]; break;
+            case 'p': strncpy(opts->parasite, optarg, MAX_FILENAME-1); break;
             case 't': 
                 opts->textpadding++; break;
             case 'r': 

