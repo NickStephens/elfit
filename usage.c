@@ -62,7 +62,7 @@ opts_t * usage(int argc, char *argv[])
             case 'a': 
                 opts->etrelinject++; break;
             case 'e': opts->entrypoint++; break;
-            case 'g': (opts->pltsymbol, optarg, MAX_FILENAME-1);
+            case 'g': strncpy(opts->pltsymbol, optarg, MAX_FILENAME-1);
                 opts->gottable++; break;
             case 'c': opts->ctors++; break;
             case 'd': opts->dtors++; break;
