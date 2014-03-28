@@ -20,11 +20,18 @@ o shared object injection
 o et_rel injection
 
 Parasite Options:
-x Apply primitive in segment polymorphism
-o Apply primitive in mmap'd region polymorphism
+x Apply primitive in-segment polymorphism
+o Apply primitive in-mmap'd region polymorphism
 
 New Technique:
 
 This infection toolkit offers a new redirection technique that is not implemented in other elf infection tools that this author has seen. This new technique is __libc_start_main argument hijacking. It's very simple and stealthy, particularly because I haven't seen any Linux AV software which would detect this kind of redirection attack. It works by overwriting a pointer that's passed to the __libc_start_main function, the parasite code is now responsible for restoring any clobbered registers (this is critical!) and jumping to the body of code the original argument pointed to.
 
 As far as .ctors, .dtors, and entry point redirection goes, this author can testify to seeing implementations of Linux AV which easily detect those kinds of redirections. Although it does not seem it would be extraordinarily difficult to detect and disinfect this new method, its worth lies in its novelty.
+
+Gotchas:
+    GOT redirection hijacks a function call for one invokation of the hijacked function, meaning on subsequent calls to this function will not invoke the parasite code. The parasite code is also responsible for preserving the original arguments to the invokation.
+
+TODO:
+    o Preserve and restore argument registers in 64bit polymorphism.
+    o Smart Addressing: predict which address to patch parasite code with
