@@ -20,8 +20,8 @@ o shared object injection
 o et_rel injection
 
 Parasite Options:
-x Apply primitive in-segment polymorphism
-o Apply primitive in-mmap'd region polymorphism
+x Apply primitive in-segment polymorphism (only x86 support)
+o Apply primitive in-mmap'd region polymorphism (only x86 support)
 
 New Technique:
 
@@ -29,8 +29,17 @@ This infection toolkit offers a new redirection technique that is not implemente
 
 As far as .ctors, .dtors, and entry point redirection goes, this author can testify to seeing implementations of Linux AV which easily detect those kinds of redirections. Although it does not seem it would be extraordinarily difficult to detect and disinfect this new method, its worth lies in its novelty.
 
+Smart Patching:
+
+When a parasite is first injected into a host executable it often. Elfit makes parasite patching easy and allows you to craft truly generic parasites! At the time of injection the parasite often won't know where to return execution after its code has run, Elfit solves this problem by picking the parasite return address for you, it determines the patch address through the choosen redirection method. Elfit will determine where in the parasite code to patch by looking for the following sequence, 0x00112233, (0x0011223344556677 for 64bit). For example, to have
+Elfit patch your parasite simply include the following line in your assembly:
+    
+    ...
+    mov rax, 0x0011223344556677
+    jmp rax
+
+The parasite is now ready to be patched!
+
 Gotchas:
     GOT redirection hijacks a function call for one invokation of the hijacked function, meaning on subsequent calls to this function will not invoke the parasite code. The parasite code is also responsible for preserving the original arguments to the invokation.
 
-TODO:
-    o Smart patching
