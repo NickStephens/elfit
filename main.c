@@ -88,7 +88,7 @@ int elfit32(opts_t *opts)
     }
     else if (opts->startmain)
     {
-        return libc_start_main_hijack_32(&host, malpoint, opts->startmain_mode);
+        //return libc_start_main_hijack_32(&host, malpoint, opts->startmain_mode);
     }
 
     unload_host(&host);
@@ -134,10 +134,15 @@ int elfit64(opts_t *opts)
             printf("[+ ENTRYPOINT REDIR]\n");
             patch_off = entry_redirect_64(&host, &patch_addr);
         }
-        if (opts->gottable)
+        else if (opts->gottable)
         {
             printf("[+ GOT REDIR]\n");
             patch_off = got_redirect_64(&host, opts->pltsymbol, &patch_addr);
+        }
+        else if (opts->startmain)
+        {
+            printf("[+ LIBC_START_MAIN REDIR]\n");
+            patch_off = libc_start_main_hijack_64(&host, opts->startmain_mode, &patch_addr);
         }
         else
         {

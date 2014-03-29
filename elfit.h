@@ -70,6 +70,9 @@ off_t entry_redirect_64(Elfit_t *, uint64_t *);
 off_t got_redirect_32(Elfit_t *, char *, uint32_t *);
 off_t got_redirect_64(Elfit_t *, char *, uint64_t *);
 
+off_t libc_start_main_hijack_32(Elfit_t *, int, uint32_t *);
+off_t libc_start_main_hijack_64(Elfit_t *, int, uint64_t *);
+
 int commit_redirect_32(Elfit_t *, off_t, uint32_t);
 int commit_redirect_64(Elfit_t *, off_t, uint64_t);
 
