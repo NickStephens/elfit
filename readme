@@ -33,5 +33,4 @@ Gotchas:
     GOT redirection hijacks a function call for one invokation of the hijacked function, meaning on subsequent calls to this function will not invoke the parasite code. The parasite code is also responsible for preserving the original arguments to the invokation.
 
 TODO:
-    o Preserve and restore argument registers in 64bit polymorphism.
-    o Smart Addressing: predict which address to patch parasite code with
+    o Smart patching
