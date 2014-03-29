@@ -1,4 +1,27 @@
 #include "elfit.h"
+#include <getopt.h>
+
+static struct option long_options[] = 
+    {
+        { "parasite", required_argument, NULL, 'p'},
+        { "text", no_argument, NULL, 't'},
+        { "reverse", no_argument, NULL, 'r'},
+        { "data", no_argument, NULL, 'w'},
+        { "shared", no_argument, NULL, 's'},
+        { "relinjex", no_argument, NULL, 'a'},
+        { "got", required_argument, NULL, 'g'},
+        { "entry", no_argument, NULL, 'e'},
+        { "ctor", no_argument, NULL, 'c'},
+        { "dtor", no_argument, NULL, 'd'},
+        { "main", required_argument, NULL, 'm'},
+        { "patch-addr", required_argument, NULL, 'v'},
+        { "patch-position", required_argument, NULL, 'q'},
+        { "in-segment-poly", required_argument, NULL, 'z'},
+        { "cross", no_argument, NULL, 'x'},
+        { 0, 0, 0, 0}
+    };
+ 
+int option_index = 0;
 
 static void print_help(char opt, char *prog)
 {
@@ -8,26 +31,26 @@ static void print_help(char opt, char *prog)
     printf(
     "usage: %s [options] <host>\n"
     "options:\n"
-    "-p <parasite>      specify parasite file\n"
+    "-p, --parasite <parasite>  specify parasite file\n"
     "\n"
     "INJECTION TECHNIQUES:\n"
-    "\t-t                 text padding infection\n"
-    "\t-r                 reverse text padding infection\n"
-    "\t-w                 data padding infection\n"
-    "\t-s <sharedobj>     inject shared object\n"
-    "\t-a                  relocatable injection\n"
+    "\t-t, --text               text padding infection\n"
+    "\t-r, --reverse            reverse text padding infection\n"
+    "\t-w, --data               data padding infection\n"
+    "\t-s, --shared <sharedobj> inject shared object\n"
+    "\t-a, --relinjex           relocatable injection\n"
     "\n"
     "REDIRECTION TECHNIQUES:\n"
-    "\t-g <symbol>        hijack symbol's got entry\n"
-    "\t-e                 use entry point redirection\n"
-    "\t-c                 use ctor redirection\n"
-    "\t-d                 use dtor redirection\n"
-    "\t-m init|fini|main  hijack chosen __libc_start_main arg\n"
+    "\t-g, --got <symbol>         hijack symbol's got entry\n"
+    "\t-e, --entry                use entry point redirection\n"
+    "\t-c, --ctor                 use ctor redirection\n"
+    "\t-d, --dtor                 use dtor redirection\n"
+    "\t-m, --main init|fini|main  hijack chosen __libc_start_main arg\n"
     "\n"
     "PARASITE MODIFICATION:\n"
-    "\t-v <addr>          patch parasite with addr for jmp point\n"
-    "\t-q <position>      byte index into parasite with which to patch with return addr\n"
-    "\t-z <key>           mutates the parasite with key, may mark injection segment writable\n"
+    "\t-v, --patch-addr <addr>         explicitly patch parasite with addr for jmp point\n"
+    "\t-q, --patch-position <position> byte index into parasite with which to patch with return addr\n"
+    "\t-z, --in-segment-poly <key>     mutates the parasite with key, may mark injection segment writable\n"
     "-x                 cross architecture infection, infect executables on i386 if on x64 or infect executables of x64 if on i368\n",
     prog);
     exit(-1);
@@ -47,7 +70,7 @@ opts_t * usage(int argc, char *argv[])
     }
 
     memset(opts, 0, sizeof(opts_t));
-    while((c = getopt(argc, argv, "z:p:trsaeg:cdm:v:q:xh")) != -1)
+    while((c = getopt_long(argc, argv, "z:p:trsaeg:cdm:v:q:xh", long_options, &option_index)) != -1)
     {
         switch(c)
         {
