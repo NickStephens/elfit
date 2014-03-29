@@ -1,4 +1,4 @@
-#include "elfit.h"
+#include <elfit.h>
 #include <getopt.h>
 
 static struct option long_options[] = 

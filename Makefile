@@ -1,11 +1,12 @@
-CC = gcc
+OBJS=src/main.o src/injectors.o src/redirectors.o src/parasite.o src/usage.o src/util.o
+CC=gcc
+CFLAGS=-Iinclude/
 
-
-elfit: main.o redirectors.o injectors.o util.o usage.o parasite.o
-	$(CC) -o elfit main.o redirectors.o injectors.o util.o usage.o parasite.o
+elfit: $(OBJS) 
+	$(CC) -o elfit $(OBJS) 
 
 install: elfit
 	cp elfit /usr/bin
 
 clean: 
-	rm *.o 
+	rm elfit src/*.o 

@@ -1,4 +1,4 @@
-#include "elfit.h"
+#include <elfit.h>
 
 #define X86_64_POLYKEY_IND (14 + 8)
 #define X86_64_SIZE_IND    (25 + 8)

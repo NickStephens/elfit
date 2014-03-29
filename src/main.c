@@ -1,4 +1,4 @@
-#include "elfit.h"
+#include <elfit.h>
 
 
 int elfit32(opts_t *opts)
