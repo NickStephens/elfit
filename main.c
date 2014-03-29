@@ -119,12 +119,6 @@ int elfit64(opts_t *opts)
         return -1;
     }
 
-    if (!opts->patch_pos)
-    {
-        printf("parasite patch position not set\n");
-        return -1;
-    }
-
     patch_pos = opts->patch_pos;
     
     load_host(opts->host, &host);
