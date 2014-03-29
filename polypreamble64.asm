@@ -4,6 +4,10 @@ BITS 64
 ; very primitive polymorphism, simply decrypts
 ; the parasite with a one-byte xor key
 
+; this preamble writes directly into the segment
+; which the parasite was injected, as a consequence
+; that segment must be both writable and executable
+
 push rdi ; perserve registers
 push rsi
 push rdx
