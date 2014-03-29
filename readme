@@ -31,7 +31,7 @@ As far as .ctors, .dtors, and entry point redirection goes, this author can test
 
 Smart Patching:
 
-When a parasite is first injected into a host executable it often. Elfit makes parasite patching easy and allows you to craft truly generic parasites! At the time of injection the parasite often won't know where to return execution after its code has run, Elfit solves this problem by picking the parasite return address for you, it determines the patch address through the choosen redirection method. Elfit will determine where in the parasite code to patch by looking for the following sequence, 0x00112233, (0x0011223344556677 for 64bit). For example, to have
+When a parasite is first injected into a host executable it often. Elfit makes parasite patching easy and allows you to craft truly generic parasites! At the time of injection the parasite often won't know where to return execution after its code has run, Elfit solves this problem by picking the parasite return address for you, it determines the patch address through the chosen redirection method. Elfit will determine where in the parasite code to patch by looking for the following sequence, 0x00112233, (0x0011223344556677 for 64bit). For example, to have
 Elfit patch your parasite simply include the following line in your assembly:
     
     ...
@@ -42,4 +42,6 @@ The parasite is now ready to be patched!
 
 Gotchas:
     GOT redirection hijacks a function call for one invokation of the hijacked function, meaning on subsequent calls to this function will not invoke the parasite code. The parasite code is also responsible for preserving the original arguments to the invokation.
+
+    To patch a 64bit parasite it is critical that the parasite includes the entire signature, otherwise Elfit may overwrite code.
 
