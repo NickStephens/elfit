@@ -13,7 +13,7 @@ a:
     xor rbx, rbx
     xor rdx, rdx
 
-    mov rax, 0
+    mov rax, 0x0011223344556677
     jmp rax
 
 b:

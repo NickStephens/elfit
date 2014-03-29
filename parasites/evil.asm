@@ -11,7 +11,7 @@ a:
     int 0x80
     popa
 
-    mov eax, 0
+    mov eax, 0x00112233
     jmp eax
 
 b:
