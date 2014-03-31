@@ -14,7 +14,7 @@ x  __libc_start_main argument hijacking [BRAND NEW]
 
 Injection Techniques:
 x post-text padding
-o pre-text (reverse) padding
+x pre-text (reverse) padding
 o data segment 
 o shared object injection
 o et_rel injection
@@ -22,6 +22,12 @@ o et_rel injection
 Parasite Options:
 x Apply primitive in-segment polymorphism (only x86 support)
 o Apply primitive in-mmap'd region polymorphism (only x86 support)
+
+usage example:
+
+$ elfit --parasite shellsocket --text --entry /bin/ls
+
+This will infect the binary 'ls' with a payload shellsocket (the source to this parasites can be found in in the parasites directory). It will use the text padding inject technique specified by '--text' and the entrypoint redirection technique specified by '--entry'.
 
 New Technique:
 
