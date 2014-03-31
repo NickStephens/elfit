@@ -13,7 +13,7 @@ static struct option long_options[] =
         { "entrypoint", no_argument, NULL, 'e'},
         { "ctor", no_argument, NULL, 'c'},
         { "dtor", no_argument, NULL, 'd'},
-        { "start-main-hijack", required_argument, NULL, 'm'},
+        { "start-main", required_argument, NULL, 'm'},
         { "patch-addr", required_argument, NULL, 'v'},
         { "patch-position", required_argument, NULL, 'q'},
         { "in-segment-poly", required_argument, NULL, 'z'},
@@ -42,11 +42,11 @@ static void print_help(char opt, char *prog)
     "\t-a, --relinjex           relocatable injection\n"
     "\n"
     "REDIRECTION TECHNIQUES:\n"
-    "\t-g, --got <symbol>         hijack symbol's got entry\n"
-    "\t-e, --entry                use entry point redirection\n"
-    "\t-c, --ctor                 use ctor redirection\n"
-    "\t-d, --dtor                 use dtor redirection\n"
-    "\t-m, --main init|fini|main  hijack chosen __libc_start_main arg\n"
+    "\t-g, --got <symbol>               hijack symbol's got entry\n"
+    "\t-e, --entrypoint                 use entry point redirection\n"
+    "\t-c, --ctor                       use ctor redirection\n"
+    "\t-d, --dtor                       use dtor redirection\n"
+    "\t-m, --start-main init|fini|main  hijack chosen __libc_start_main arg\n"
     "\n"
     "PARASITE MODIFICATION:\n"
     "\t-v, --patch-addr <addr>         explicitly patch parasite with addr for jmp point\n"
@@ -83,6 +83,8 @@ opts_t * usage(int argc, char *argv[])
                 opts->injection_method = REVERSE_INJECT; break;
             case 's': 
                 opts->injection_method = SO_INJECT; break;
+            case 'w':
+                opts->injection_method = DATA_INJECT; break;
             case 'a': 
                 opts->injection_method = ETREL_INJECT; break;
             case 'e': opts->redirection_method = ENTRY_REDIR; break;
