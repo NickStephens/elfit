@@ -32,4 +32,4 @@ decrypt:
     cmp edi, esi
     jl decrypt
 
-popa ; restor registers
+popa ; restore registers

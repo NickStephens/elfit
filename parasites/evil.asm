@@ -6,7 +6,7 @@ a:
     pusha
     xor eax, eax
     mov ebx, 1
-    mov edx, 4
+    mov edx, 5
     mov eax, 4
     int 0x80
     popa
@@ -16,4 +16,4 @@ a:
 
 b:
     call a
-    db "evil"
+    db "evil "

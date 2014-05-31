@@ -6,6 +6,9 @@
 #define X86_POLYKEY_IND 12
 #define X86_SIZE_IND 23
 
+#define X86_POLYMMAPKEY_IND
+#define X86_MMAPSIZE_IND 
+
 int patch_parasite32(Elfit_t *parasite, uint32_t patchpos, uint32_t vaddr)
 {
     int i;
