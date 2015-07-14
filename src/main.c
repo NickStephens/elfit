@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
     {
         return elfit32(opts);
     }
-    else if (elf_class == ELF_CLASS_32)
+    else if (elf_class == ELF_CLASS_64)
     {
         return elfit64(opts);
     }
