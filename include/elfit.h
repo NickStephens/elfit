@@ -29,6 +29,9 @@
 #define SO_INJECT      4
 #define ETREL_INJECT   5
 
+#define ELF_CLASS_32 1
+#define ELF_CLASS_64 2
+
 typedef struct {
     char *name;
     unsigned char *mem;
@@ -109,3 +112,4 @@ int get_section_by_name_64(char *, Elfit_t *);
 
 /* Interface */
 opts_t *usage(int, char **);
+
