@@ -5,6 +5,7 @@ static struct option long_options[] =
     {
         { "parasite", required_argument, NULL, 'p'},
         { "text", no_argument, NULL, 't'},
+        { "note", no_argument, NULL, 'n'},
         { "reverse", no_argument, NULL, 'r'},
         { "data", no_argument, NULL, 'w'},
         { "shared", no_argument, NULL, 's'},
@@ -40,6 +41,7 @@ static void print_help(char opt, char *prog)
     "\t-w, --data               data padding infection\n"
     "\t-s, --shared <sharedobj> inject shared object\n"
     "\t-a, --relinjex           relocatable injection\n"
+    "\t-n, --note               note injection\n"
     "\n"
     "REDIRECTION TECHNIQUES:\n"
     "\t-g, --got <symbol>               hijack symbol's got entry\n"
@@ -71,7 +73,7 @@ opts_t * usage(int argc, char *argv[])
     }
 
     memset(opts, 0, sizeof(opts_t));
-    while((c = getopt_long(argc, argv, "z:p:trsaeg:cdm:v:q:xh", long_options, &option_index)) != -1)
+    while((c = getopt_long(argc, argv, "z:p:trsnaeg:cdm:v:q:xh", long_options, &option_index)) != -1)
     {
         switch(c)
         {
@@ -87,6 +89,8 @@ opts_t * usage(int argc, char *argv[])
                 opts->injection_method = DATA_INJECT; break;
             case 'a': 
                 opts->injection_method = ETREL_INJECT; break;
+            case 'n':
+                opts->injection_method = NOTE_INJECT; break;
             case 'e': opts->redirection_method = ENTRY_REDIR; break;
             case 'g': strncpy(opts->pltsymbol, optarg, MAX_FILENAME-1);
                 opts->redirection_method = GOT_REDIR; break;

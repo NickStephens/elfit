@@ -28,6 +28,7 @@
 #define DATA_INJECT    3
 #define SO_INJECT      4
 #define ETREL_INJECT   5
+#define NOTE_INJECT   6
 
 #define ELF_CLASS_32 1
 #define ELF_CLASS_64 2
@@ -112,4 +113,3 @@ int get_section_by_name_64(char *, Elfit_t *);
 
 /* Interface */
 opts_t *usage(int, char **);
-
